@@ -51,9 +51,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         />
       )}
       
-      {/* Sidebar - Fixed position */}
+      {/* Sidebar - Reduced width */}
       <div className={`
-        fixed left-0 top-0 h-full w-72 bg-white/95 backdrop-blur-xl border-r border-gray-200/50
+        fixed left-0 top-0 h-full w-64 lg:w-64 bg-white/95 backdrop-blur-xl border-r border-gray-200/50
         shadow-2xl shadow-indigo-500/10
         transform transition-all duration-300 ease-out z-50
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -71,32 +71,32 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <X size={20} />
         </Button>
 
-        {/* Logo Section */}
-        <div className="p-6 border-b border-gray-200/50">
+        {/* Logo Section - Compact */}
+        <div className="p-4 lg:p-5 border-b border-gray-200/50">
           <div className="flex items-center space-x-3">
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <GraduationCap className="text-white" size={28} />
+              <div className="w-10 h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 rounded-xl lg:rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <GraduationCap className="text-white" size={22} />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                <Sparkles className="text-white" size={10} />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                <Sparkles className="text-white" size={8} />
               </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent truncate">
                 O'quv Markaz
               </h1>
-              <p className="text-sm text-gray-500 font-medium">Admin Panel</p>
+              <p className="text-xs lg:text-sm text-gray-500 font-medium">Admin Panel</p>
             </div>
           </div>
         </div>
 
-        {/* User Profile Card */}
-        <div className="p-4 border-b border-gray-200/50">
-          <div className="relative p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100/50 shadow-sm">
+        {/* User Profile Card - Compact */}
+        <div className="p-3 lg:p-4 border-b border-gray-200/50">
+          <div className="relative p-3 lg:p-4 rounded-xl lg:rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100/50 shadow-sm">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <Avatar className="w-12 h-12 ring-2 ring-white shadow-lg">
+                <Avatar className="w-10 h-10 lg:w-12 lg:h-12 ring-2 ring-white shadow-lg">
                   <AvatarImage 
                     src={user?.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1'} 
                     alt={user?.name} 
@@ -105,22 +105,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     {user?.name?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.phone}</p>
               </div>
-              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm">
-                <TrendingUp size={10} className="mr-1" />
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm text-xs px-2 py-1">
+                <TrendingUp size={8} className="mr-1" />
                 Admin
               </Badge>
             </div>
           </div>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {/* Navigation Menu - Compact */}
+        <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -129,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 to={item.path}
                 onClick={onClose}
                 className={({ isActive }) => `
-                  group relative flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300
+                  group relative flex items-center justify-between px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300
                   ${isActive 
                     ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg shadow-${item.gradient.split('-')[1]}-500/25 scale-[1.02]` 
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:scale-[1.01]'
@@ -137,39 +137,39 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 `}
               >
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-xl transition-all duration-300 ${
+                  <div className={`p-1.5 lg:p-2 rounded-lg lg:rounded-xl transition-all duration-300 ${
                     ({ isActive }: { isActive: boolean }) => isActive 
                       ? 'bg-white/20' 
                       : 'bg-gray-100 group-hover:bg-gray-200'
                   }`}>
-                    <Icon size={20} />
+                    <Icon size={18} />
                   </div>
-                  <span className="font-semibold">{item.label}</span>
+                  <span className="font-semibold text-sm lg:text-base truncate">{item.label}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   {item.badge && (
-                    <Badge className="bg-red-500 text-white text-xs px-2 py-1 animate-pulse">
+                    <Badge className="bg-red-500 text-white text-xs px-1.5 py-0.5 animate-pulse">
                       {item.badge}
                     </Badge>
                   )}
-                  <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
+                  <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
                 </div>
               </NavLink>
             );
           })}
         </nav>
 
-        {/* Logout Section */}
-        <div className="p-4 border-t border-gray-200/50">
+        {/* Logout Section - Compact */}
+        <div className="p-3 lg:p-4 border-t border-gray-200/50">
           <Button
             onClick={handleLogout}
             variant="ghost"
-            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-300 rounded-2xl py-3 px-4"
+            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-300 rounded-xl lg:rounded-2xl py-2.5 lg:py-3 px-3 lg:px-4"
           >
-            <div className="p-2 rounded-xl bg-gray-100 group-hover:bg-red-100 transition-colors mr-3">
-              <LogOut size={20} />
+            <div className="p-1.5 lg:p-2 rounded-lg lg:rounded-xl bg-gray-100 group-hover:bg-red-100 transition-colors mr-3">
+              <LogOut size={18} />
             </div>
-            <span className="font-semibold">Chiqish</span>
+            <span className="font-semibold text-sm lg:text-base">Chiqish</span>
           </Button>
         </div>
       </div>

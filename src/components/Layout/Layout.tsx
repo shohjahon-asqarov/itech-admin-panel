@@ -23,8 +23,8 @@ const Layout: React.FC = () => {
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:pl-72">
+      {/* Main Content - Adjusted for smaller sidebar */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:pl-64">
         <Header 
           onMenuClick={() => setSidebarOpen(true)} 
           title={getPageTitle()}
