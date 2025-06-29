@@ -80,37 +80,37 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">
       {/* Welcome Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 text-white">
+      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6 lg:p-8 text-white">
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">Xush kelibsiz! 👋</h1>
-          <p className="text-indigo-100 text-lg">Bugungi natijalaringiz va statistikalar</p>
+          <h1 className="text-2xl lg:text-3xl font-bold mb-2">Xush kelibsiz! 👋</h1>
+          <p className="text-indigo-100 text-base lg:text-lg">Bugungi natijalaringiz va statistikalar</p>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 lg:w-64 lg:h-64 bg-white/10 rounded-full -translate-y-16 lg:-translate-y-32 translate-x-16 lg:translate-x-32"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 lg:w-48 lg:h-48 bg-white/5 rounded-full translate-y-12 lg:translate-y-24 -translate-x-12 lg:-translate-x-24"></div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white/80 backdrop-blur-sm">
+            <Card key={index} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white/90 backdrop-blur-sm">
               <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5`}></div>
-              <CardContent className="p-6 relative">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-2xl bg-gradient-to-br ${stat.gradient} shadow-lg`}>
-                    <Icon className="text-white" size={24} />
+              <CardContent className="p-4 lg:p-6 relative">
+                <div className="flex items-start justify-between mb-3 lg:mb-4">
+                  <div className={`p-2 lg:p-3 rounded-xl lg:rounded-2xl bg-gradient-to-br ${stat.gradient} shadow-lg`}>
+                    <Icon className="text-white" size={20} />
                   </div>
                   <div className="flex items-center space-x-1 text-green-600">
-                    <ArrowUp size={16} />
-                    <span className="text-sm font-semibold">{stat.change}</span>
+                    <ArrowUp size={14} />
+                    <span className="text-xs lg:text-sm font-semibold">{stat.change}</span>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <div className="space-y-1 lg:space-y-2">
+                  <p className="text-xs lg:text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl lg:text-3xl font-bold text-gray-900">{stat.value}</p>
                   <p className="text-xs text-gray-500">{stat.description}</p>
                 </div>
               </CardContent>
@@ -120,22 +120,22 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Revenue Chart */}
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+        <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Oylik Daromad</CardTitle>
-                <CardDescription className="text-gray-600">So'nggi 6 oylik daromad statistikasi</CardDescription>
+                <CardTitle className="text-lg lg:text-xl font-bold text-gray-900">Oylik Daromad</CardTitle>
+                <CardDescription className="text-gray-600 text-sm">So'nggi 6 oylik daromad statistikasi</CardDescription>
               </div>
               <div className="p-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
-                <Activity className="text-white" size={20} />
+                <Activity className="text-white" size={18} />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={monthlyData}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
@@ -144,15 +144,16 @@ const Dashboard: React.FC = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="month" stroke="#6B7280" />
-                <YAxis tickFormatter={(value) => `${value / 1000000}M`} stroke="#6B7280" />
+                <XAxis dataKey="month" stroke="#6B7280" fontSize={12} />
+                <YAxis tickFormatter={(value) => `${value / 1000000}M`} stroke="#6B7280" fontSize={12} />
                 <Tooltip 
                   formatter={(value) => [`${value.toLocaleString()} so'm`, 'Daromad']}
                   contentStyle={{ 
                     backgroundColor: 'white', 
                     border: 'none', 
                     borderRadius: '12px', 
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                    fontSize: '14px'
                   }}
                 />
                 <Area 
@@ -168,31 +169,32 @@ const Dashboard: React.FC = () => {
         </Card>
 
         {/* Student Growth Chart */}
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+        <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Talabalar O'sishi</CardTitle>
-                <CardDescription className="text-gray-600">Oylik yangi talabalar soni</CardDescription>
+                <CardTitle className="text-lg lg:text-xl font-bold text-gray-900">Talabalar O'sishi</CardTitle>
+                <CardDescription className="text-gray-600 text-sm">Oylik yangi talabalar soni</CardDescription>
               </div>
               <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500">
-                <TrendingUp className="text-white" size={20} />
+                <TrendingUp className="text-white" size={18} />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="month" stroke="#6B7280" />
-                <YAxis stroke="#6B7280" />
+                <XAxis dataKey="month" stroke="#6B7280" fontSize={12} />
+                <YAxis stroke="#6B7280" fontSize={12} />
                 <Tooltip 
                   formatter={(value) => [value, 'Talabalar']}
                   contentStyle={{ 
                     backgroundColor: 'white', 
                     border: 'none', 
                     borderRadius: '12px', 
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                    fontSize: '14px'
                   }}
                 />
                 <Line 
@@ -212,21 +214,22 @@ const Dashboard: React.FC = () => {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Course Distribution */}
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+        <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900">Kurslar Taqsimoti</CardTitle>
-            <CardDescription className="text-gray-600">Kurslar bo'yicha talabalar soni</CardDescription>
+            <CardTitle className="text-lg lg:text-xl font-bold text-gray-900">Kurslar Taqsimoti</CardTitle>
+            <CardDescription className="text-gray-600 text-sm">Kurslar bo'yicha talabalar soni</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={courseData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
+                  outerRadius={70}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelStyle={{ fontSize: '12px' }}
                 >
                   {courseData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -239,47 +242,47 @@ const Dashboard: React.FC = () => {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="lg:col-span-2 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+        <Card className="lg:col-span-2 border-0 shadow-lg bg-white/90 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900">So'nggi Faoliyat</CardTitle>
-            <CardDescription className="text-gray-600">Tizimda so'nggi sodir bo'lgan hodisalar</CardDescription>
+            <CardTitle className="text-lg lg:text-xl font-bold text-gray-900">So'nggi Faoliyat</CardTitle>
+            <CardDescription className="text-gray-600 text-sm">Tizimda so'nggi sodir bo'lgan hodisalar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-l-4 border-blue-500">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Yangi talaba ro'yxatdan o'tdi</p>
+            <div className="space-y-3 lg:space-y-4">
+              <div className="flex items-center space-x-3 lg:space-x-4 p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl lg:rounded-2xl border-l-4 border-blue-500">
+                <div className="w-2 h-2 lg:w-3 lg:h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">Yangi talaba ro'yxatdan o'tdi</p>
                   <p className="text-xs text-gray-500">5 daqiqa oldin</p>
                 </div>
-                <Badge className="bg-blue-100 text-blue-700">Yangi</Badge>
+                <Badge className="bg-blue-100 text-blue-700 text-xs">Yangi</Badge>
               </div>
               
-              <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border-l-4 border-green-500">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Kurs to'lovi tasdiqlandi</p>
+              <div className="flex items-center space-x-3 lg:space-x-4 p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl lg:rounded-2xl border-l-4 border-green-500">
+                <div className="w-2 h-2 lg:w-3 lg:h-3 bg-green-500 rounded-full"></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">Kurs to'lovi tasdiqlandi</p>
                   <p className="text-xs text-gray-500">15 daqiqa oldin</p>
                 </div>
-                <Badge className="bg-green-100 text-green-700">To'lov</Badge>
+                <Badge className="bg-green-100 text-green-700 text-xs">To'lov</Badge>
               </div>
               
-              <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl border-l-4 border-yellow-500">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Yangi sharh kutilmoqda</p>
+              <div className="flex items-center space-x-3 lg:space-x-4 p-3 lg:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl lg:rounded-2xl border-l-4 border-yellow-500">
+                <div className="w-2 h-2 lg:w-3 lg:h-3 bg-yellow-500 rounded-full"></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">Yangi sharh kutilmoqda</p>
                   <p className="text-xs text-gray-500">1 soat oldin</p>
                 </div>
-                <Badge className="bg-yellow-100 text-yellow-700">Kutilmoqda</Badge>
+                <Badge className="bg-yellow-100 text-yellow-700 text-xs">Kutilmoqda</Badge>
               </div>
               
-              <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-2xl border-l-4 border-purple-500">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Yangi o'qituvchi qo'shildi</p>
+              <div className="flex items-center space-x-3 lg:space-x-4 p-3 lg:p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl lg:rounded-2xl border-l-4 border-purple-500">
+                <div className="w-2 h-2 lg:w-3 lg:h-3 bg-purple-500 rounded-full"></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">Yangi o'qituvchi qo'shildi</p>
                   <p className="text-xs text-gray-500">3 soat oldin</p>
                 </div>
-                <Badge className="bg-purple-100 text-purple-700">O'qituvchi</Badge>
+                <Badge className="bg-purple-100 text-purple-700 text-xs">O'qituvchi</Badge>
               </div>
             </div>
           </CardContent>

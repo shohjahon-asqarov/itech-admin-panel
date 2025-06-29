@@ -23,16 +23,16 @@ const Layout: React.FC = () => {
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Main Content - No margin on desktop, sidebar is fixed */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:pl-72">
         <Header 
           onMenuClick={() => setSidebarOpen(true)} 
           title={getPageTitle()}
         />
         
-        {/* Content with proper padding to account for fixed sidebar */}
-        <main className="flex-1 overflow-auto lg:pl-72">
-          <div className="p-6 lg:p-8">
+        {/* Content with responsive padding */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 lg:p-6 xl:p-8 max-w-7xl mx-auto w-full">
             <Outlet />
           </div>
         </main>
