@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   phone: string;
-  role: 'admin' | 'manager';
+  role: "admin" | "manager";
   avatar?: string;
 }
 
@@ -11,10 +11,11 @@ export interface Lead {
   name: string;
   phone: string;
   email?: string;
-  course: string;
-  status: 'new' | 'contacted' | 'enrolled' | 'cancelled';
-  source: string;
+  course?: { id: string; title: string } | null;
+  status: "NEW" | "CONTACTED" | "ENROLLED" | "REJECTED";
+  source?: string;
   createdAt: string;
+  message?: string;
   notes?: string;
 }
 
@@ -41,28 +42,26 @@ export interface Instructor {
 }
 
 export interface Course {
-  id: number;
+  id: string;
   title: string;
-  description: string;
-  duration: string;
-  level: "Boshlang'ich" | "O'rta" | "Yuqori";
-  price: string;
-  students: number;
-  rating: number;
-  instructor: string;
-  category: string;
-  image: string;
-  skills: string[];
+  description?: string;
+  duration?: string;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  price: number;
+  students?: number;
+  category?: string;
+  image?: string;
+  isActive: boolean;
 }
 
 export interface Testimonial {
-  id: number;
+  id: string;
   name: string;
-  role: string;
-  image: string;
   content: string;
   rating: number;
-  course: string;
+  image?: string;
+  course?: string | { id: string; title: string };
+  createdAt: string;
 }
 
 export interface DashboardStats {

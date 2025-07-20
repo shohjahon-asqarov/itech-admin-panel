@@ -1,61 +1,128 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Plus, Users, Calendar, DollarSign, Clock, Eye, Edit, Star, Trash2, MoreHorizontal } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Search, Filter, Plus, Users, Clock, DollarSign, Star, BookOpen, Eye, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { mockCourses } from '@/data/mockData';
+import { toast } from 'react-toastify';
 import { Course } from '@/types';
+import { CourseService } from '@/services';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDate, formatCurrency } from '@/utils';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
-  const [courses, setCourses] = useState<Course[]>(mockCourses);
+  const location = useLocation(); // location qo'shildi
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const queryClient = useQueryClient();
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
-    return matchesSearch && matchesLevel;
+  // Fetch courses (GET)
+  const {
+    data: courses = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['courses'],
+    queryFn: async () => await CourseService.getAll(),
   });
 
-  const getLevelVariant = (level: Course['level']) => {
-    switch (level) {
-      case "Boshlang'ich": return 'bg-green-100 text-green-700 border-green-200';
-      case "O'rta": return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case "Yuqori": return 'bg-red-100 text-red-700 border-red-200';
+  // location.state orqali formdan qaytilganini tekshirish va refetch qilish
+  //   React.useEffect(() => {
+  //     if (location.state && (location.state.from === 'form' || location.state.updated)) {
+  //       refetch();
+  //       // state ni tozalash uchun replace
+  //       navigate(location.pathname, { replace: true });
+  //     }
+  //   }, [location, navigate, refetch]);
+
+  // Delete course (DELETE)
+  const {
+    mutate: deleteCourse,
+    isLoading: isDeleting,
+    error: deleteError,
+  } = useMutation({
+    mutationFn: (id: string) => CourseService.delete(id),
+    onSuccess: () => {
+      toast.success("Kurs muvaffaqiyatli o'chirildi!");
+      queryClient.invalidateQueries({ queryKey: ['courses'] }); // Boshqa pagelardagi kabi
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Kursni o‘chirishda xatolik!');
+    },
+  });
+
+
+  const filteredCourses = courses.filter((course: Course) => {
+    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || course.category === categoryFilter;
+    const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
+    return matchesSearch && matchesCategory && matchesLevel;
+  });
+
+  const categories = Array.from(new Set(courses.map(c => c.category).filter(Boolean)));
+  const levels = Array.from(new Set(courses.map(c => c.level).filter(Boolean)));
+
+  const stats = {
+    total: courses.length,
+    active: courses.filter(c => c.isActive).length,
+    inactive: courses.filter(c => !c.isActive).length,
+  };
+
+  const handleDelete = (courseId: string) => {
+    if (confirm('Kursni o\'chirishni xohlaysizmi?')) {
+      deleteCourse(courseId);
+    }
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'beginner': return 'bg-green-100 text-green-700 border-green-200';
+      case 'intermediate': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'advanced': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <Star
-        key={index}
-        size={14}
-        className={index < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
-      />
-    ));
-  };
-
-  const handleDelete = (courseId: number) => {
-    if (confirm('Kursni o\'chirishni xohlaysizmi?')) {
-      setCourses(courses.filter(course => course.id !== courseId));
+  const getLevelText = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'beginner': return 'Boshlang\'ich';
+      case 'intermediate': return 'O\'rta';
+      case 'advanced': return 'Yuqori';
+      default: return level;
     }
   };
 
-  const stats = {
-    total: courses.length,
-    totalStudents: courses.reduce((sum, c) => sum + c.students, 0),
-    averageRating: courses.reduce((sum, c) => sum + c.rating, 0) / courses.length,
-    totalRevenue: courses.reduce((sum, c) => sum + (parseInt(c.price.replace(/[^\d]/g, '')) * c.students), 0),
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Kurslar yuklanmoqda...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-red-600">Xatolik: {(error as Error)?.message || 'Kurslarni yuklashda xatolik!'}</p>
+          <Button onClick={() => refetch()} className="mt-4">Qayta yuklash</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">
@@ -65,7 +132,7 @@ const Courses: React.FC = () => {
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
             Kurslar
           </h1>
-          <p className="text-gray-600 text-sm lg:text-base">Kurslarni boshqarish va nazorat qilish</p>
+          <p className="text-gray-600 text-sm lg:text-base">Kurslarni boshqarish va kuzatish</p>
         </div>
         <Button
           onClick={() => navigate('/courses/new')}
@@ -77,7 +144,7 @@ const Courses: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-6">
         <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
@@ -86,54 +153,35 @@ const Courses: React.FC = () => {
                 <p className="text-2xl lg:text-3xl font-bold text-blue-600">{stats.total}</p>
               </div>
               <div className="p-2 lg:p-3 bg-blue-500 rounded-xl lg:rounded-2xl">
-                <Calendar className="text-white" size={20} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs lg:text-sm font-medium text-gray-600">Jami Talabalar</p>
-                <p className="text-2xl lg:text-3xl font-bold text-green-600">{stats.totalStudents}</p>
-              </div>
-              <div className="p-2 lg:p-3 bg-green-500 rounded-xl lg:rounded-2xl">
-                <Users className="text-white" size={20} />
+                <BookOpen className="text-white" size={20} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 hover:shadow-xl transition-all duration-300">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs lg:text-sm font-medium text-gray-600">O'rtacha Reyting</p>
-                <div className="flex items-center space-x-1 mt-1">
-                  {renderStars(Math.round(stats.averageRating))}
-                </div>
-                <p className="text-xl lg:text-2xl font-bold text-yellow-600 mt-1">{stats.averageRating.toFixed(1)}</p>
+                <p className="text-xs lg:text-sm font-medium text-gray-600">Faol</p>
+                <p className="text-2xl lg:text-3xl font-bold text-green-600">{stats.active}</p>
               </div>
-              <div className="p-2 lg:p-3 bg-yellow-500 rounded-xl lg:rounded-2xl">
+              <div className="p-2 lg:p-3 bg-green-500 rounded-xl lg:rounded-2xl">
                 <Star className="text-white" size={20} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-50 hover:shadow-xl transition-all duration-300">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-gray-50 to-slate-50 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs lg:text-sm font-medium text-gray-600">Jami Daromad</p>
-                <p className="text-2xl lg:text-3xl font-bold text-purple-600">
-                  {(stats.totalRevenue / 1000000).toFixed(1)}M
-                </p>
+                <p className="text-xs lg:text-sm font-medium text-gray-600">Faol emas</p>
+                <p className="text-2xl lg:text-3xl font-bold text-gray-600">{stats.inactive}</p>
               </div>
-              <div className="p-2 lg:p-3 bg-purple-500 rounded-xl lg:rounded-2xl">
-                <DollarSign className="text-white" size={20} />
+              <div className="p-2 lg:p-3 bg-gray-500 rounded-xl lg:rounded-2xl">
+                <BookOpen className="text-white" size={20} />
               </div>
             </div>
           </CardContent>
@@ -148,7 +196,7 @@ const Courses: React.FC = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <Input
-                  placeholder="Kurs nomi, o'qituvchi yoki tavsif bo'yicha qidirish..."
+                  placeholder="Kurs nomi yoki tavsif bo'yicha qidirish..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 rounded-xl border-gray-200"
@@ -157,15 +205,26 @@ const Courses: React.FC = () => {
             </div>
             <div className="flex items-center space-x-2">
               <Filter size={20} className="text-gray-400" />
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[150px] rounded-xl border-gray-200">
+                  <SelectValue placeholder="Kategoriya" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Barcha kategoriyalar</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={levelFilter} onValueChange={setLevelFilter}>
-                <SelectTrigger className="w-full sm:w-[180px] rounded-xl border-gray-200">
-                  <SelectValue placeholder="Daraja tanlang" />
+                <SelectTrigger className="w-full sm:w-[150px] rounded-xl border-gray-200">
+                  <SelectValue placeholder="Daraja" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Barcha darajalar</SelectItem>
-                  <SelectItem value="Boshlang'ich">Boshlang'ich</SelectItem>
-                  <SelectItem value="O'rta">O'rta</SelectItem>
-                  <SelectItem value="Yuqori">Yuqori</SelectItem>
+                  {levels.map(level => (
+                    <SelectItem key={level} value={level}>{getLevelText(level)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -176,172 +235,185 @@ const Courses: React.FC = () => {
       {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
         {filteredCourses.map((course) => (
-          <Card key={course.id} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white/90 backdrop-blur-sm overflow-hidden group">
-            <div className="aspect-video relative overflow-hidden">
+          <Card
+            key={course.id}
+            className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-3xl p-0"
+          >
+            {/* Image & Badges */}
+            <div className="relative h-40 w-full overflow-hidden rounded-t-3xl">
               <img
-                src={course.image}
+                src={course.image || 'https://images.unsplash.com/photo-1503676382389-4809596d5290?auto=format&fit=crop&w=400&q=80'}
                 alt={course.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
               />
-              <div className="absolute top-3 right-3">
-                <div className={`px-2 py-1 rounded-lg text-xs font-medium border shadow-lg backdrop-blur-sm ${getLevelVariant(course.level)}`}>
-                  {course.level}
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              {/* Category badge */}
+              {course.category && (
+                <span className="absolute top-3 left-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg backdrop-blur-sm">
+                  {course.category}
+                </span>
+              )}
+              {/* Status badge */}
+              <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold shadow-lg backdrop-blur-sm ${course.isActive ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}>
+                {course.isActive ? 'Faol' : 'Faol emas'}
+              </span>
             </div>
-            
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1 flex-1 min-w-0">
-                  <CardTitle className="text-base lg:text-lg font-bold text-gray-900 line-clamp-1">{course.title}</CardTitle>
-                  <CardDescription className="text-gray-600 text-sm">{course.instructor}</CardDescription>
-                </div>
+
+            {/* Card Content */}
+            <div className="flex flex-col justify-between flex-1 p-5 bg-white/90 backdrop-blur-md rounded-b-3xl min-h-[220px]">
+              {/* Title & Description */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 truncate mb-1 group-hover:text-indigo-700 transition-colors">{course.title}</h3>
+                <p className="text-gray-500 text-sm line-clamp-2 mb-3">{course.description || 'Tavsif yo\'q'}</p>
               </div>
-              
-              <div className="flex items-center space-x-1">
-                {renderStars(course.rating)}
-                <span className="text-sm text-gray-500 ml-1">({course.rating})</span>
-              </div>
-            </CardHeader>
 
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600 line-clamp-2">{course.description}</p>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-500">
-                    <Users size={14} className="mr-2" />
-                    Talabalar
-                  </div>
-                  <span className="font-semibold text-gray-900">{course.students}</span>
+              {/* Info Row */}
+              <div className="flex flex-col gap-2 mb-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1 text-gray-600">
+                    <DollarSign size={15} className="text-blue-400" />
+                    <span>Narxi</span>
+                  </span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(course.price)}</span>
                 </div>
-                
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-500">
-                    <Clock size={14} className="mr-2" />
-                    Davomiyligi
-                  </div>
-                  <span className="font-semibold text-gray-900">{course.duration}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1 text-gray-600">
+                    <Clock size={15} className="text-indigo-400" />
+                    <span>Davomiyligi</span>
+                  </span>
+                  <span className="font-semibold text-gray-900">{course.duration || 'Belgilanmagan'}</span>
                 </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-500">
-                    <DollarSign size={14} className="mr-2" />
-                    Narx
-                  </div>
-                  <span className="font-semibold text-green-600">{course.price}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1 text-gray-600">
+                    <Users size={15} className="text-green-400" />
+                    <span>Talabalar</span>
+                  </span>
+                  <span className="font-semibold text-gray-900">{course.students || 0}</span>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-900">Ko'nikmalar:</p>
-                <div className="flex flex-wrap gap-1">
-                  {course.skills.slice(0, 3).map((skill, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs bg-gray-100">
-                      {skill}
-                    </Badge>
-                  ))}
-                  {course.skills.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{course.skills.length - 3}
-                    </Badge>
-                  )}
-                </div>
+              {/* Level & Date */}
+              <div className="flex items-center justify-between mb-4">
+                <Badge className={`rounded-full px-3 py-1 text-xs font-semibold shadow ${getLevelColor(course.level)}`}>{getLevelText(course.level)}</Badge>
+                <span className="text-xs text-gray-400">{formatDate(course.createdAt)}</span>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <Badge variant="outline" className="text-xs">{course.category}</Badge>
-                
-                <div className="flex items-center space-x-1">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSelectedCourse(course)}
-                        className="hover:bg-blue-50 hover:text-blue-600 rounded-xl h-8 w-8"
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>{course.title}</DialogTitle>
-                        <DialogDescription>Kurs tafsilotlari</DialogDescription>
-                      </DialogHeader>
-                      {selectedCourse && (
-                        <div className="space-y-6">
-                          <img
-                            src={selectedCourse.image}
-                            alt={selectedCourse.title}
-                            className="w-full h-48 object-cover rounded-xl"
-                          />
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="font-medium">O'qituvchi</p>
-                              <p className="text-gray-600">{selectedCourse.instructor}</p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Daraja</p>
-                              <div className={`inline-block px-2 py-1 rounded-lg text-xs font-medium border ${getLevelVariant(selectedCourse.level)}`}>
-                                {selectedCourse.level}
-                              </div>
-                            </div>
-                            <div>
-                              <p className="font-medium">Davomiyligi</p>
-                              <p className="text-gray-600">{selectedCourse.duration}</p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Narx</p>
-                              <p className="text-green-600 font-semibold">{selectedCourse.price}</p>
-                            </div>
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedCourse(course)}
+                      className="hover:bg-blue-50 hover:text-blue-600 rounded-xl h-8 w-8"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Kurs ma'lumotlari</DialogTitle>
+                      <DialogDescription>
+                        {selectedCourse?.title} haqida batafsil ma'lumot
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedCourse && (
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{selectedCourse.title}</h3>
+                          <p className="text-sm text-gray-600">{selectedCourse.description || 'Tavsif yo\'q'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Narxi:</span>
+                            <span className="font-semibold">{formatCurrency(selectedCourse.price)}</span>
                           </div>
-                          
-                          <div>
-                            <p className="font-medium mb-2">Tavsif</p>
-                            <p className="text-gray-600">{selectedCourse.description}</p>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Davomiyligi:</span>
+                            <span className="font-semibold">{selectedCourse.duration || 'Belgilanmagan'}</span>
                           </div>
-                          
-                          <div>
-                            <p className="font-medium mb-2">O'rganiladigan ko'nikmalar</p>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedCourse.skills.map((skill, index) => (
-                                <Badge key={index} variant="secondary">
-                                  {skill}
-                                </Badge>
-                              ))}
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Talabalar:</span>
+                            <span className="font-semibold">{selectedCourse.students || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Daraja:</span>
+                            <Badge className={getLevelColor(selectedCourse.level)}>{getLevelText(selectedCourse.level)}</Badge>
+                          </div>
+                          {selectedCourse.category && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Kategoriya:</span>
+                              <Badge variant="outline">{selectedCourse.category}</Badge>
                             </div>
+                          )}
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Holati:</span>
+                            <Badge className={selectedCourse.isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'}>
+                              {selectedCourse.isActive ? 'Faol' : 'Faol emas'}
+                            </Badge>
                           </div>
                         </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate(`/courses/${course.id}`)}
-                    className="hover:bg-green-50 hover:text-green-600 rounded-xl h-8 w-8"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(course.id)}
-                    className="hover:bg-red-50 hover:text-red-600 rounded-xl h-8 w-8"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate(`/courses/${course.id}`, { state: { from: 'courses' } })}
+                  className="hover:bg-green-50 hover:text-green-600 rounded-xl h-8 w-8"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(course.id)}
+                  className="hover:bg-red-50 hover:text-red-600 rounded-xl h-8 w-8"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <span className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin block mx-auto"></span>
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ))}
       </div>
+
+      {filteredCourses.length === 0 && !isLoading && (
+        <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="text-gray-400 mb-4">
+              <BookOpen size={48} className="mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Kurslar topilmadi</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || categoryFilter !== 'all' || levelFilter !== 'all'
+                ? 'Qidiruv natijalariga mos kurslar yo\'q'
+                : 'Hali hech qanday kurs qo\'shilmagan'
+              }
+            </p>
+            {!searchTerm && categoryFilter === 'all' && levelFilter === 'all' && (
+              <Button
+                onClick={() => navigate('/courses/new')}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Birinchi kursni qo'shing
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      {deleteError && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg mt-4">
+          <p className="text-destructive text-sm font-medium">{(deleteError as Error)?.message || 'Kursni o‘chirishda xatolik!'}</p>
+        </div>
+      )}
     </div>
   );
 };

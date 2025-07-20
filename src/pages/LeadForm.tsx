@@ -1,321 +1,293 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Phone, Mail, User, BookOpen, MapPin } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Save, User, Mail, Phone, BookOpen, MessageSquare, Upload } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-toastify';
-import { mockLeads, mockCourses } from '@/data/mockData';
 import { Lead } from '@/types';
+import { LeadService } from '@/services';
+import { useFetch } from '@/hooks';
+import { CourseService } from '@/services/courseService';
+import { apiService } from '@/services/api';
+
+type FormValues = {
+  name: string;
+  email: string;
+  phone: string;
+  courseId: string;
+  message: string;
+  status: string;
+};
 
 const LeadForm: React.FC = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const isEdit = Boolean(id && id !== 'new');
-  
-  const [formData, setFormData] = useState<Partial<Lead>>({
-    name: '',
-    phone: '',
-    email: '',
-    course: '',
-    status: 'new',
-    source: '',
-    notes: ''
+  const { id } = useParams<{ id: string }>();
+  const isEditing = Boolean(id);
+
+  const [courses, setCourses] = React.useState<{ id: string; title: string }[]>([]);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await CourseService.getAll();
+        setCourses(res.map((c: any) => ({ id: c.id, title: c.title })));
+      } catch {
+        toast.error('Kurslar yuklanmadi');
+      }
+    })();
+  }, []);
+
+  const { register, handleSubmit, setValue, reset, control, getValues, formState: { errors, isSubmitting, isValid } } = useForm<FormValues>({
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      courseId: '',
+      message: '',
+      status: 'NEW',
+    }
   });
-  
-  const [loading, setLoading] = useState(false);
 
+  // Fetch lead data if editing
   useEffect(() => {
-    if (isEdit && id) {
-      const lead = mockLeads.find(l => l.id === id);
-      if (lead) {
-        setFormData(lead);
-      } else {
-        toast.error('Lid topilmadi!');
-        navigate('/leads');
-      }
+    if (isEditing) {
+      (async () => {
+        try {
+          const data = await LeadService.getById(id);
+          reset({
+            name: data.name,
+            email: data.email,
+            phone: data.phone || '',
+            courseId: data.course?.id || '',
+            message: data.message || '',
+            status: data.status,
+          });
+        } catch {
+          toast.error("Lead ma'lumotlari yuklanmadi");
+          navigate('/leads');
+        }
+      })();
     }
-  }, [id, isEdit, navigate]);
+  }, [isEditing, id, reset, navigate]);
 
-  const handleInputChange = (field: keyof Lead, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  // onSubmit should only send JSON, never FormData
+  const onSubmit = async (data: FormValues) => {
     try {
-      // Validate required fields
-      if (!formData.name || !formData.phone || !formData.course || !formData.source) {
-        toast.error('Barcha majburiy maydonlarni to\'ldiring!');
-        return;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      if (isEdit) {
-        toast.success('Lid ma\'lumotlari muvaffaqiyatli yangilandi!', {
-          position: "top-right",
-          autoClose: 3000,
-        });
+      const submitData: any = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        courseId: data.courseId,
+        message: data.message,
+      };
+      if (isEditing) {
+        submitData.status = data.status?.toUpperCase();
+        await LeadService.update(id, submitData);
+        toast.success('Lead muvaffaqiyatli yangilandi!');
       } else {
-        toast.success('Yangi lid muvaffaqiyatli qo\'shildi!', {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        await LeadService.create(submitData);
+        toast.success('Lead muvaffaqiyatli qo\'shildi!');
       }
-      
       navigate('/leads');
     } catch (error) {
-      toast.error('Ma\'lumotlarni saqlashda xatolik yuz berdi!');
-    } finally {
-      setLoading(false);
+      toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Lidni o\'chirishni xohlaysizmi?')) return;
-    
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Lid muvaffaqiyatli o\'chirildi!', {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      
-      navigate('/leads');
-    } catch (error) {
-      toast.error('Lidni o\'chirishda xatolik yuz berdi!');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sources = ['Website', 'Instagram', 'Facebook', 'Telegram', 'Referral', 'Google Ads'];
-  const statuses: Lead['status'][] = ['new', 'contacted', 'enrolled', 'cancelled'];
-
-  const getStatusText = (status: Lead['status']) => {
-    switch (status) {
-      case 'new': return 'Yangi';
-      case 'contacted': return 'Aloqa qilindi';
-      case 'enrolled': return "Ro'yxatdan o'tdi";
-      case 'cancelled': return 'Bekor qilindi';
-      default: return status;
-    }
-  };
+  const statuses = [
+    { value: 'NEW', label: 'Yangi' },
+    { value: 'CONTACTED', label: 'Bog\'lanish' },
+    { value: 'ENROLLED', label: 'Ro\'yxatdan o\'tgan' },
+    { value: 'REJECTED', label: 'Bekor qilindi' }
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
-            size="icon"
             onClick={() => navigate('/leads')}
             className="hover:bg-gray-100 rounded-xl"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Orqaga
           </Button>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-              {isEdit ? 'Lidni Tahrirlash' : 'Yangi Lid Qo\'shish'}
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              {isEditing ? 'Leadni tahrirlash' : 'Yangi lead'}
             </h1>
-            <p className="text-gray-600">
-              {isEdit ? 'Mavjud lid ma\'lumotlarini yangilang' : 'Yangi lid uchun barcha ma\'lumotlarni kiriting'}
+            <p className="text-gray-600 text-sm lg:text-base">
+              {isEditing ? 'Lead ma\'lumotlarini yangilang' : 'Yangi lead qo\'shing'}
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Personal Information */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
+            {/* Basic Information */}
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <User className="text-blue-500" size={24} />
-                  <span className="text-xl font-bold text-gray-900">Shaxsiy Ma'lumotlar</span>
+                  <User className="h-5 w-5 text-blue-600" />
+                  <span>Asosiy ma'lumotlar</span>
                 </CardTitle>
-                <CardDescription>Lid haqida asosiy ma'lumotlarni kiriting</CardDescription>
+                <CardDescription>
+                  Potensial talaba haqida asosiy ma'lumotlar
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">To'liq ism *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      placeholder="Masalan: Akmal Toshmatov"
-                      className="rounded-xl border-gray-200"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium">Telefon raqam *</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        placeholder="+998901234567"
-                        className="pl-10 rounded-xl border-gray-200"
-                        required
-                      />
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">To'liq ism *</Label>
+                  <Input
+                    id="name"
+                    {...register('name', { required: true })}
+                    placeholder="Potensial talaba ismi"
+                    className="rounded-xl border-gray-200"
+                  />
+                  {errors.name && <span className="text-red-500 text-xs">Ism majburiy</span>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="example@email.com"
-                      className="pl-10 rounded-xl border-gray-200"
+                      {...register('email', { required: true })}
+                      placeholder="email@example.com"
+                      className="rounded-xl border-gray-200"
+                    />
+                    {errors.email && <span className="text-red-500 text-xs">Email majburiy</span>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefon raqam</Label>
+                    <Input
+                      id="phone"
+                      {...register('phone')}
+                      placeholder="+998 90 123 45 67"
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="course" className="text-sm font-medium">Qiziqish bildirgan kurs *</Label>
-                    <div className="relative">
-                      <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                      <Select value={formData.course} onValueChange={(value) => handleInputChange('course', value)}>
-                        <SelectTrigger className="pl-10 rounded-xl border-gray-200">
+                <div className="space-y-2">
+                  <Label htmlFor="courseId">Qiziqish bildirgan kurs *</Label>
+                  <Controller
+                    name="courseId"
+                    control={control}
+                    rules={{ required: 'Kurs tanlash majburiy' }}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger className="rounded-xl border-gray-200">
                           <SelectValue placeholder="Kurs tanlang" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockCourses.map((course) => (
-                            <SelectItem key={course.id} value={course.title}>
-                              {course.title}
-                            </SelectItem>
+                          {courses.map(course => (
+                            <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="source" className="text-sm font-medium">Manba *</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                      <Select value={formData.source} onValueChange={(value) => handleInputChange('source', value)}>
-                        <SelectTrigger className="pl-10 rounded-xl border-gray-200">
-                          <SelectValue placeholder="Manba tanlang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sources.map((source) => (
-                            <SelectItem key={source} value={source}>
-                              {source}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                    )}
+                  />
+                  {errors.courseId && <span className="text-destructive text-xs">{errors.courseId.message}</span>}
                 </div>
+              </CardContent>
+            </Card>
 
+            {/* Message */}
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                  <span>Xabar</span>
+                </CardTitle>
+                <CardDescription>
+                  Potensial talabaning xabari yoki qo'shimcha ma'lumotlari
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium">Izohlar</Label>
-                  <textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    placeholder="Qo'shimcha ma'lumotlar..."
+                  <Label htmlFor="message">Xabar matni</Label>
+                  <Textarea
+                    id="message"
+                    {...register('message')}
+                    placeholder="Potensial talabaning xabari..."
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className="rounded-xl border-gray-200 resize-none"
                   />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Status and Submit */}
           <div className="space-y-6">
-            {/* Status */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-bold text-gray-900">Status</CardTitle>
-                <CardDescription>Lid holatini belgilang</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="status" className="text-sm font-medium">Joriy status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value as Lead['status'])}>
-                    <SelectTrigger className="rounded-xl border-gray-200">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuses.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {getStatusText(status)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Status maydoni faqat admin uchun update bo‘lsa ko‘rsatiladi */}
+            {isEditing && (
+              <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BookOpen className="h-5 w-5 text-purple-600" />
+                    <span>Holat</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Leadning joriy holati
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Lead holati *</Label>
+                    <Select
+                      value={undefined}
+                      onValueChange={(value) => setValue('status', value)}
+                    >
+                      <SelectTrigger className="rounded-xl border-gray-200">
+                        <SelectValue placeholder="Holat tanlang" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statuses.map(status => (
+                          <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Action Buttons */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-4">
+            {/* Submit Button */}
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardContent className="p-6">
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl py-3"
+                  disabled={!isValid || isSubmitting}
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg transition-all duration-200"
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Saqlanmoqda...</span>
+                      <span>Kuting...</span>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
-                      <Save size={16} />
-                      <span>{isEdit ? 'Yangilash' : 'Saqlash'}</span>
+                      <span>Saqlash</span>
+                      <Save size={20} />
                     </div>
                   )}
                 </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/leads')}
-                  className="w-full rounded-xl border-gray-200 hover:bg-gray-50"
-                  disabled={loading}
-                >
-                  Bekor qilish
-                </Button>
-                
-                {isEdit && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-full rounded-xl"
-                    onClick={handleDelete}
-                    disabled={loading}
-                  >
-                    <Trash2 size={16} className="mr-2" />
-                    O'chirish
-                  </Button>
-                )}
               </CardContent>
             </Card>
           </div>

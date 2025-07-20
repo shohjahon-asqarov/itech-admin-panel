@@ -1,478 +1,342 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, X, Plus, Trash2, User, Award, Globe } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Save, Upload, User, Mail, Phone, MapPin, BookOpen, Award } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { mockInstructors } from '@/data/mockData';
-import { Instructor } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'react-toastify';
+import { Teacher } from '@/types';
+import { TeacherService } from '@/services/teacherService';
+import { useFetch } from '@/hooks';
+import { apiService } from '@/services';
+
+type FormValues = {
+  name: string;
+  email: string;
+  phone: string;
+  bio: string;
+  image: string;
+  isActive: boolean;
+};
 
 const TeacherForm: React.FC = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const isEdit = Boolean(id && id !== 'new');
-  
-  const [formData, setFormData] = useState<Partial<Instructor>>({
-    name: '',
-    title: '',
-    company: '',
-    bio: '',
-    image: '',
-    skills: [],
-    experience: '',
-    achievements: [],
-    social: {
-      linkedin: '',
-      twitter: '',
-      github: '',
-      website: '',
-      youtube: ''
+  const { id } = useParams<{ id: string }>();
+  const isEditing = Boolean(id);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    control,
+    getValues, // <-- to'g'ri joyda
+    formState: { errors, isSubmitting, isValid }
+  } = useForm<FormValues>({
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      bio: '',
+      image: '',
+      isActive: true,
     }
   });
-  
-  const [newSkill, setNewSkill] = useState('');
-  const [newAchievement, setNewAchievement] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string>('');
+
+  // Fetch teacher data if editing
+  const { execute: fetchTeacher, data } = useFetch<Teacher>(
+    async () => {
+      if (!id) throw new Error('ID required');
+      return await TeacherService.getById(id);
+    },
+    {
+      onSuccess: (data) => {
+        reset({
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          bio: data.bio || '',
+          image: data.image || '',
+          isActive: data.isActive ?? true,
+        });
+      },
+      onError: () => {
+        toast.error('O\'qituvchi ma\'lumotlari yuklanmadi');
+        navigate('/teachers');
+      },
+      autoExecute: false
+    }
+  );
 
   useEffect(() => {
-    if (isEdit && id) {
-      const teacher = mockInstructors.find(t => t.id === parseInt(id));
-      if (teacher) {
-        setFormData(teacher);
-        setImagePreview(teacher.image);
-      }
+    if (isEditing) {
+      fetchTeacher();
     }
-  }, [id, isEdit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
-  const handleInputChange = (field: keyof Instructor, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSocialChange = (field: keyof Instructor['social'], value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      social: { ...prev.social, [field]: value }
-    }));
-  };
-
-  const handleAddSkill = () => {
-    if (newSkill.trim() && !formData.skills?.includes(newSkill.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        skills: [...(prev.skills || []), newSkill.trim()]
-      }));
-      setNewSkill('');
-    }
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills?.filter(skill => skill !== skillToRemove) || []
-    }));
-  };
-
-  const handleAddAchievement = () => {
-    if (newAchievement.trim() && !formData.achievements?.includes(newAchievement.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        achievements: [...(prev.achievements || []), newAchievement.trim()]
-      }));
-      setNewAchievement('');
-    }
-  };
-
-  const handleRemoveAchievement = (achievementToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      achievements: prev.achievements?.filter(achievement => achievement !== achievementToRemove) || []
-    }));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        setFormData(prev => ({ ...prev, image: result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  // onSubmit should only send JSON, never FormData
+  const onSubmit = async (data: FormValues) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (isEdit) {
-        console.log('Updating teacher:', formData);
+      const submitData = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        bio: data.bio,
+        image: data.image, // always a URL string
+        isActive: data.isActive
+      };
+      if (isEditing) {
+        await TeacherService.update(id, submitData);
+        toast.success('O\'qituvchi muvaffaqiyatli yangilandi!');
       } else {
-        console.log('Creating teacher:', formData);
+        await TeacherService.create(submitData);
+        toast.success('O\'qituvchi muvaffaqiyatli qo\'shildi!');
       }
-      
       navigate('/teachers');
     } catch (error) {
-      console.error('Error saving teacher:', error);
-    } finally {
-      setLoading(false);
+      toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
+  };
+
+  const [imageUploading, setImageUploading] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+
+  const handleImageUpload = async (file: File) => {
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await apiService.upload<{ url: string }>('/upload/image', formData);
+      let url = response.data?.data?.url;
+      // URL ni to'liq qilish (agar kerak bo'lsa)
+      if (url && !/^https?:\/\//.test(url)) {
+        url = `${import.meta.env.VITE_API_URL || ''}${url}`;
+      }
+      console.log('Uploaded image URL:', url);
+      if (url) {
+        setValue('image', url, { shouldValidate: true, shouldDirty: true });
+      }
+    } catch {
+      toast.error('Rasm yuklashda xatolik yuz berdi.');
+    }
+    setImageUploading(false);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
-            size="icon"
             onClick={() => navigate('/teachers')}
             className="hover:bg-gray-100 rounded-xl"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Orqaga
           </Button>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-              {isEdit ? 'O\'qituvchini Tahrirlash' : 'Yangi O\'qituvchi Qo\'shish'}
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              {isEditing ? 'O\'qituvchini tahrirlash' : 'Yangi o\'qituvchi'}
             </h1>
-            <p className="text-gray-600">
-              {isEdit ? 'Mavjud o\'qituvchi ma\'lumotlarini yangilang' : 'Yangi o\'qituvchi uchun barcha ma\'lumotlarni kiriting'}
+            <p className="text-gray-600 text-sm lg:text-base">
+              {isEditing ? 'O\'qituvchi ma\'lumotlarini yangilang' : 'Yangi o\'qituvchi qo\'shing'}
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Personal Information */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
+            {/* Basic Information (faqat matnli fieldlar, rasm upload yo'q) */}
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <User className="text-blue-500" size={24} />
-                  <span className="text-xl font-bold text-gray-900">Shaxsiy Ma'lumotlar</span>
+                  <User className="h-5 w-5 text-blue-600" />
+                  <span>Asosiy ma'lumotlar</span>
                 </CardTitle>
-                <CardDescription>O'qituvchi haqida asosiy ma'lumotlarni kiriting</CardDescription>
+                <CardDescription>
+                  O'qituvchining shaxsiy ma'lumotlari
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">To'liq ism *</Label>
+                    <Label htmlFor="name">To'liq ism *</Label>
                     <Input
                       id="name"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      placeholder="Masalan: Olim Yusupov"
+                      {...register('name', { required: 'Ism majburiy' })}
+                      placeholder="O'qituvchi ismi"
                       className="rounded-xl border-gray-200"
-                      required
                     />
+                    {errors.name && <span className="text-destructive text-xs">{errors.name.message}</span>}
                   </div>
-                  
                   <div className="space-y-2">
-                    <Label htmlFor="title" className="text-sm font-medium">Lavozim *</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                      placeholder="Masalan: Senior Frontend Developer"
+                      id="email"
+                      type="email"
+                      {...register('email', {
+                        required: 'Email majburiy',
+                        pattern: {
+                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                          message: 'Email formati noto‘g‘ri'
+                        }
+                      })}
+                      placeholder="email@example.com"
                       className="rounded-xl border-gray-200"
-                      required
                     />
+                    {errors.email && <span className="text-destructive text-xs">{errors.email.message}</span>}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="company" className="text-sm font-medium">Kompaniya</Label>
+                    <Label htmlFor="phone">Telefon raqam</Label>
                     <Input
-                      id="company"
-                      value={formData.company}
-                      onChange={(e) => handleInputChange('company', e.target.value)}
-                      placeholder="Masalan: TechCorp"
+                      id="phone"
+                      {...register('phone')}
+                      placeholder="+998 90 123 45 67"
                       className="rounded-xl border-gray-200"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="experience" className="text-sm font-medium">Tajriba *</Label>
-                    <Input
-                      id="experience"
-                      value={formData.experience}
-                      onChange={(e) => handleInputChange('experience', e.target.value)}
-                      placeholder="Masalan: 5+ yil"
-                      className="rounded-xl border-gray-200"
-                      required
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      {...register('bio')}
+                      placeholder="O'qituvchi haqida qisqacha ma'lumot"
+                      rows={3}
+                      className="rounded-xl border-gray-200 resize-none"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-sm font-medium">Bio *</Label>
-                  <textarea
-                    id="bio"
-                    value={formData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="O'qituvchi haqida batafsil ma'lumot..."
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    required
-                  />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Skills Section */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-gray-900">Ko'nikmalar</CardTitle>
-                <CardDescription>O'qituvchining texnik ko'nikmalarini qo'shing</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex space-x-2">
-                  <Input
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="Ko'nikma nomini kiriting..."
-                    className="flex-1 rounded-xl border-gray-200"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddSkill}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 rounded-xl"
-                  >
-                    <Plus size={16} />
-                  </Button>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {formData.skills?.map((skill, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 transition-colors"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skill)}
-                        className="ml-2 hover:text-red-500 transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Achievements Section */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
+            {/* Image Upload */}
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Award className="text-yellow-500" size={24} />
-                  <span className="text-xl font-bold text-gray-900">Yutuqlar</span>
+                  <Upload className="h-5 w-5 text-green-600" />
+                  <span>O'qituvchi rasmi</span>
                 </CardTitle>
-                <CardDescription>O'qituvchining yutuq va sertifikatlarini qo'shing</CardDescription>
+                <CardDescription>
+                  Rasmni tanlang yoki bu yerga sudrab tashlang
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex space-x-2">
-                  <Input
-                    value={newAchievement}
-                    onChange={(e) => setNewAchievement(e.target.value)}
-                    placeholder="Yutuq yoki sertifikat nomini kiriting..."
-                    className="flex-1 rounded-xl border-gray-200"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddAchievement())}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddAchievement}
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 rounded-xl"
+              <CardContent>
+                {/* Zamonaviy rasm upload preview */}
+                <div className="flex flex-col items-center gap-2 mb-6">
+                  <div
+                    className={`relative w-32 h-32 rounded-full border-2 border-dashed flex items-center justify-center bg-gray-50 shadow-lg cursor-pointer transition hover:border-blue-400 overflow-hidden ${imageUploading ? 'opacity-60 pointer-events-none' : ''}`}
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={async e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) await handleImageUpload(file);
+                    }}
                   >
-                    <Plus size={16} />
-                  </Button>
-                </div>
-                
-                <div className="space-y-2">
-                  {formData.achievements?.map((achievement, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-xl border border-yellow-200"
-                    >
-                      <span className="text-sm font-medium text-gray-900">{achievement}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAchievement(achievement)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Social Links */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2">
-                  <Globe className="text-green-500" size={24} />
-                  <span className="text-xl font-bold text-gray-900">Ijtimoiy Tarmoqlar</span>
-                </CardTitle>
-                <CardDescription>O'qituvchining ijtimoiy tarmoq havolalarini qo'shing</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="linkedin" className="text-sm font-medium">LinkedIn</Label>
-                    <Input
-                      id="linkedin"
-                      value={formData.social?.linkedin}
-                      onChange={(e) => handleSocialChange('linkedin', e.target.value)}
-                      placeholder="https://linkedin.com/in/username"
-                      className="rounded-xl border-gray-200"
+                    {imageUploading ? (
+                      <div className="w-full h-full flex items-center justify-center animate-pulse bg-gray-200 rounded-full">
+                        <svg className="w-8 h-8 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M4 12a8 8 0 018-8" className="opacity-75" />
+                        </svg>
+                      </div>
+                    ) : getValues('image') ? (
+                      <img
+                        src={getValues('image')}
+                        alt="Preview image"
+                        className="w-full h-full object-cover rounded-full"
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <Upload className="w-8 h-8 mb-1" />
+                        <span className="text-xs">Rasm tanlang yoki sudrab tashlang</span>
+                      </div>
+                    )}
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) await handleImageUpload(file);
+                      }}
+                      className="hidden"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="github" className="text-sm font-medium">GitHub</Label>
-                    <Input
-                      id="github"
-                      value={formData.social?.github}
-                      onChange={(e) => handleSocialChange('github', e.target.value)}
-                      placeholder="https://github.com/username"
-                      className="rounded-xl border-gray-200"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="twitter" className="text-sm font-medium">Twitter</Label>
-                    <Input
-                      id="twitter"
-                      value={formData.social?.twitter}
-                      onChange={(e) => handleSocialChange('twitter', e.target.value)}
-                      placeholder="https://twitter.com/username"
-                      className="rounded-xl border-gray-200"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="website" className="text-sm font-medium">Website</Label>
-                    <Input
-                      id="website"
-                      value={formData.social?.website}
-                      onChange={(e) => handleSocialChange('website', e.target.value)}
-                      placeholder="https://website.com"
-                      className="rounded-xl border-gray-200"
-                    />
-                  </div>
+                  <input type="hidden" {...register('image')} />
+                  {errors.image && <span className="text-destructive text-xs">{errors.image.message}</span>}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Status & Save */}
           <div className="space-y-6">
-            {/* Image Upload */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-bold text-gray-900">Profil Rasmi</CardTitle>
-                <CardDescription>O'qituvchi uchun rasm yuklang</CardDescription>
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BookOpen className="h-5 w-5 text-purple-600" />
+                  <span>Holat</span>
+                </CardTitle>
+                <CardDescription>
+                  O'qituvchining joriy holati
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-48 object-cover rounded-xl"
-                      />
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="isActive">Faol</Label>
+                  <Controller
+                    name="isActive"
+                    control={control}
+                    render={({ field }) => (
                       <button
                         type="button"
-                        onClick={() => {
-                          setImagePreview('');
-                          setFormData(prev => ({ ...prev, image: '' }));
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        role="switch"
+                        aria-checked={field.value}
+                        tabIndex={0}
+                        onClick={() => field.onChange(!field.value)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${field.value ? 'bg-blue-600' : 'bg-gray-300'}`}
                       >
-                        <X size={16} />
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${field.value ? 'translate-x-6' : 'translate-x-1'}`}
+                        />
                       </button>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors">
-                      <Upload className="mx-auto text-gray-400 mb-2" size={32} />
-                      <p className="text-sm text-gray-600">Rasm yuklash uchun bosing</p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    )}
                   />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Action Buttons */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-4">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl py-3"
-                >
-                  {loading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Saqlanmoqda...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Save size={16} />
-                      <span>{isEdit ? 'Yangilash' : 'Saqlash'}</span>
-                    </div>
-                  )}
-                </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/teachers')}
-                  className="w-full rounded-xl border-gray-200 hover:bg-gray-50"
-                >
-                  Bekor qilish
-                </Button>
-                
-                {isEdit && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-full rounded-xl"
-                    onClick={() => {
-                      if (confirm('O\'qituvchini o\'chirishni xohlaysizmi?')) {
-                        console.log('Deleting teacher:', id);
-                        navigate('/teachers');
-                      }
-                    }}
-                  >
-                    <Trash2 size={16} className="mr-2" />
-                    O'chirish
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <Button
+              type="submit"
+              disabled={!isValid || isSubmitting}
+              className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg rounded-xl"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Kuting...</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Save className="h-5 w-5" />
+                  <span>Saqlash</span>
+                </div>
+              )}
+            </Button>
           </div>
         </div>
       </form>

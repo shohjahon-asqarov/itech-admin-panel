@@ -1,38 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Lock, GraduationCap, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Phone, Lock, GraduationCap, Eye, EyeOff, ArrowRight, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLogin } from '@/hooks/useLogin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Login: React.FC = () => {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<{ email: string; password: string }>();
+  const [showPassword, setShowPassword] = React.useState(false);
+  const { login: legacyLogin } = useAuth();
+  const { mutate: login, isLoading, error: loginError } = useLogin();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const success = await login(phone, password);
-      if (success) {
-        navigate('/dashboard');
-      } else {
-        setError('Telefon raqam yoki parol noto\'g\'ri');
-      }
-    } catch (err) {
-      setError('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = (data: { email: string; password: string }) => {
+    login(data, {
+      onSuccess: (data) => {
+        if (data?.token && data?.user) {
+          localStorage.setItem('admin_token', data.token);
+          localStorage.setItem('admin_user', JSON.stringify(data.user));
+          navigate('/dashboard');
+        }
+      },
+    });
   };
 
   return (
@@ -58,24 +51,25 @@ const Login: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Phone Input */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Email Input */}
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">
-                  Telefon raqam
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
                   <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+998901234567"
+                    id="email"
+                    type="email"
+                    placeholder="email@example.com"
                     className="pl-12 h-12 bg-muted/50 border-0 focus:bg-white transition-colors"
-                    required
+                    {...register('email', { required: 'Email majburiy' })}
                   />
                 </div>
+                {errors.email && (
+                  <span className="text-destructive text-xs">{errors.email.message}</span>
+                )}
               </div>
 
               {/* Password Input */}
@@ -88,11 +82,9 @@ const Login: React.FC = () => {
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Parolni kiriting"
                     className="pl-12 pr-12 h-12 bg-muted/50 border-0 focus:bg-white transition-colors"
-                    required
+                    {...register('password', { required: 'Parol majburiy' })}
                   />
                   <Button
                     type="button"
@@ -104,12 +96,15 @@ const Login: React.FC = () => {
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </Button>
                 </div>
+                {errors.password && (
+                  <span className="text-destructive text-xs">{errors.password.message}</span>
+                )}
               </div>
 
               {/* Error Message */}
-              {error && (
+              {loginError && (
                 <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-destructive text-sm font-medium">{error}</p>
+                  <p className="text-destructive text-sm font-medium">{loginError.message || loginError.toString()}</p>
                 </div>
               )}
 
@@ -117,7 +112,7 @@ const Login: React.FC = () => {
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-blue-800 text-sm font-medium mb-2">Demo kirish ma'lumotlari:</p>
                 <div className="space-y-1">
-                  <p className="text-blue-600 text-sm">📱 Telefon: +998901234567</p>
+                  <p className="text-blue-600 text-sm">📧 Email: admin@example.com</p>
                   <p className="text-blue-600 text-sm">🔒 Parol: admin123</p>
                 </div>
               </div>
@@ -125,10 +120,10 @@ const Login: React.FC = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting || isLoading}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg transition-all duration-200"
               >
-                {loading ? (
+                {(isSubmitting || isLoading) ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>Kuting...</span>

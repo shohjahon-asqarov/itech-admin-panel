@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Save, Bell, Shield, User, Globe, Database, Mail, Phone } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,31 @@ const Settings: React.FC = () => {
     setNotifications(prev => ({ ...prev, [key]: value }));
   };
 
+  // Profil formi uchun react-hook-form
+  const { register: registerProfile, handleSubmit: handleProfileSubmit, formState: { errors: profileErrors, isSubmitting: isProfileSubmitting } } = useForm({
+    defaultValues: {
+      name: user?.name || '',
+      phone: user?.phone || '',
+      email: user?.email || '',
+      role: 'Administrator',
+      bio: user?.bio || '',
+    }
+  });
+
+  const onProfileSubmit = (data: any) => {
+    // Profil ma'lumotlarini saqlash logikasi shu yerda
+    // Masalan: userService.updateProfile(data)
+    alert('Profil ma’lumotlari saqlandi!');
+  };
+
+  // Xavfsizlik formi uchun react-hook-form
+  const { register: registerSecurity, handleSubmit: handleSecuritySubmit, formState: { errors: securityErrors, isSubmitting: isSecuritySubmitting } } = useForm();
+
+  const onSecuritySubmit = (data: any) => {
+    // Parolni yangilash logikasi shu yerda
+    alert('Parol yangilandi!');
+  };
+
   const renderProfileTab = () => (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -43,57 +69,61 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      <form className="space-y-4">
+      <form className="space-y-4" onSubmit={handleProfileSubmit(onProfileSubmit)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">To'liq ism</label>
             <input
               type="text"
-              defaultValue={user?.name}
+              {...registerProfile('name', { required: 'Ism majburiy' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+            {profileErrors.name && <span className="text-destructive text-xs">{profileErrors.name.message}</span>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Telefon raqam</label>
             <input
               type="tel"
-              defaultValue={user?.phone}
+              {...registerProfile('phone', { required: 'Telefon raqam majburiy' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+            {profileErrors.phone && <span className="text-destructive text-xs">{profileErrors.phone.message}</span>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
               type="email"
-              placeholder="admin@example.com"
+              {...registerProfile('email', { required: 'Email majburiy' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+            {profileErrors.email && <span className="text-destructive text-xs">{profileErrors.email.message}</span>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Lavozim</label>
             <input
               type="text"
-              defaultValue="Administrator"
+              {...registerProfile('role')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
           <textarea
             rows={3}
-            placeholder="O'zingiz haqingizda qisqacha ma'lumot"
+            {...registerProfile('bio')}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           ></textarea>
         </div>
 
         <button
           type="submit"
+          disabled={isProfileSubmitting}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Save size={20} className="mr-2" />
-          O'zgarishlarni saqlash
+          {isProfileSubmitting ? 'Saqlanmoqda...' : 'O\'zgarishlarni saqlash'}
         </button>
       </form>
     </div>
@@ -103,7 +133,7 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Bildirishnoma sozlamalari</h3>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
@@ -209,41 +239,48 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Xavfsizlik sozlamalari</h3>
-        
-        <form className="space-y-4">
+
+        <form className="space-y-4" onSubmit={handleSecuritySubmit(onSecuritySubmit)}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Joriy parol</label>
             <input
               type="password"
+              {...registerSecurity('currentPassword', { required: 'Joriy parol majburiy' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Joriy parolni kiriting"
             />
+            {securityErrors.currentPassword && <span className="text-destructive text-xs">{securityErrors.currentPassword.message}</span>}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Yangi parol</label>
             <input
               type="password"
+              {...registerSecurity('newPassword', { required: 'Yangi parol majburiy' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Yangi parolni kiriting"
             />
+            {securityErrors.newPassword && <span className="text-destructive text-xs">{securityErrors.newPassword.message}</span>}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Yangi parolni tasdiqlash</label>
             <input
               type="password"
+              {...registerSecurity('confirmPassword', { required: 'Parolni tasdiqlash majburiy' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Yangi parolni qayta kiriting"
             />
+            {securityErrors.confirmPassword && <span className="text-destructive text-xs">{securityErrors.confirmPassword.message}</span>}
           </div>
 
           <button
             type="submit"
+            disabled={isSecuritySubmitting}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Save size={20} className="mr-2" />
-            Parolni yangilash
+            {isSecuritySubmitting ? 'Saqlanmoqda...' : 'Parolni yangilash'}
           </button>
         </form>
       </div>
@@ -279,7 +316,7 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Tizim ma'lumotlari</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium text-gray-900">Tizim versiyasi</h4>
@@ -316,7 +353,7 @@ const Settings: React.FC = () => {
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
-          
+
           <div className="p-4 bg-gray-50 rounded-lg">
             <h5 className="font-medium text-gray-900 mb-2">So'nggi backup</h5>
             <p className="text-sm text-gray-600 mb-3">Bugun, 02:00 • 145 MB</p>
@@ -333,7 +370,7 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Aloqa ma'lumotlari</h3>
-        
+
         <form className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -369,7 +406,7 @@ const Settings: React.FC = () => {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Manzil</label>
             <textarea
@@ -442,11 +479,10 @@ const Settings: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                      activeTab === tab.id
+                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === tab.id
                         ? 'bg-blue-600 text-white'
                         : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                      }`}
                   >
                     <Icon size={20} />
                     <span className="font-medium">{tab.label}</span>
