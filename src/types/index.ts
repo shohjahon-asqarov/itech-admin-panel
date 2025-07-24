@@ -19,26 +19,21 @@ export interface Lead {
   notes?: string;
 }
 
-export interface Instructor {
-  id: number;
+export interface Teacher {
+  id: string;
   name: string;
-  title: string;
-  company: string;
-  bio: string;
-  image: string;
-  skills: string[];
-  rating: number;
-  students: number;
-  courses: string[];
-  experience: string;
-  achievements?: string[];
-  social: {
-    linkedin: string;
-    twitter: string;
-    github: string;
-    website?: string;
-    youtube?: string;
-  };
+  email: string;
+  phone?: string;
+  bio?: string;
+  image?: string;
+  language: string;
+  isActive: boolean;
+  title?: string;
+  company?: string;
+  skills?: string;
+  experience?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Course {

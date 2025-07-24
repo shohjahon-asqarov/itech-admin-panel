@@ -17,8 +17,8 @@ import { formatDate } from '@/utils';
 const Teachers: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [specializationFilter, setSpecializationFilter] = useState<string>('all');
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [specializationFilter, setSpecializationFilter] = useState<string>('all');
   const queryClient = useQueryClient();
 
   // Fetch teachers (GET)
@@ -53,9 +53,9 @@ const Teachers: React.FC = () => {
 
   const filteredTeachers = teachers.filter((teacher: Teacher) => {
     const matchesSearch = teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.specialization.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSpecialization = specializationFilter === 'all' || teacher.specialization === specializationFilter;
-    return matchesSearch && matchesSpecialization;
+      (teacher.title && teacher.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (teacher.company && teacher.company.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesSearch;
   });
 
   const specializations = Array.from(new Set(teachers.map(t => t.specialization)));

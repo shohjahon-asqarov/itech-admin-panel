@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-toastify';
 import { Teacher } from '@/types';
@@ -22,6 +22,11 @@ type FormValues = {
   bio: string;
   image: string;
   isActive: boolean;
+  title?: string;
+  company?: string;
+  skills?: string;
+  experience?: string;
+  language: string;
 };
 
 const TeacherForm: React.FC = () => {
@@ -46,6 +51,11 @@ const TeacherForm: React.FC = () => {
       bio: '',
       image: '',
       isActive: true,
+      title: '',
+      company: '',
+      skills: '',
+      experience: '',
+      language: 'uz',
     }
   });
 
@@ -64,6 +74,11 @@ const TeacherForm: React.FC = () => {
           bio: data.bio || '',
           image: data.image || '',
           isActive: data.isActive ?? true,
+          title: data.title || '',
+          company: data.company || '',
+          skills: data.skills || '',
+          experience: data.experience || '',
+          language: data.language || 'uz',
         });
       },
       onError: () => {
@@ -90,7 +105,12 @@ const TeacherForm: React.FC = () => {
         phone: data.phone,
         bio: data.bio,
         image: data.image, // always a URL string
-        isActive: data.isActive
+        isActive: data.isActive,
+        title: data.title,
+        company: data.company,
+        skills: data.skills,
+        experience: data.experience,
+        language: data.language,
       };
       if (isEditing) {
         await TeacherService.update(id, submitData);
@@ -281,6 +301,45 @@ const TeacherForm: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Add new fields to the form UI:
+                - title
+                - company
+                - skills
+                - experience
+                - language
+                Place them in the main form section, after the existing fields. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Lavozim</Label>
+                <Input id="title" {...register('title')} placeholder="Masalan: Senior Developer" className="rounded-xl border-gray-200" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">Kompaniya</Label>
+                <Input id="company" {...register('company')} placeholder="Masalan: Tech Solutions" className="rounded-xl border-gray-200" />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="skills">Malumotlar (comma-separated)</Label>
+                <Input id="skills" {...register('skills')} placeholder="Masalan: React, Node.js, MongoDB" className="rounded-xl border-gray-200" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="experience">Tajriba</Label>
+                <Textarea id="experience" {...register('experience')} placeholder="Masalan: 3 yil" rows={3} className="rounded-xl border-gray-200 resize-none" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="language">Til</Label>
+                <Select onValueChange={(value) => setValue('language', value)} defaultValue={getValues('language')}>
+                  <SelectTrigger className="rounded-xl border-gray-200">
+                    <SelectValue placeholder="Tilni tanlang" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="uz">O'zbek</SelectItem>
+                    <SelectItem value="ru">Rus</SelectItem>
+                    <SelectItem value="en">Ingliz</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Status & Save */}
