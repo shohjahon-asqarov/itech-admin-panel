@@ -12,6 +12,7 @@ import { Course } from '@/types';
 import { CourseService } from '@/services';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDate, formatCurrency } from '@/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Courses: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; courseId: string | null }>({ open: false, courseId: null });
   const queryClient = useQueryClient();
 
   // Fetch courses (GET)
@@ -78,9 +80,7 @@ const Courses: React.FC = () => {
   };
 
   const handleDelete = (courseId: string) => {
-    if (confirm('Kursni o\'chirishni xohlaysizmi?')) {
-      deleteCourse(courseId);
-    }
+    setDeleteDialog({ open: true, courseId });
   };
 
   const getLevelColor = (level: string) => {
@@ -414,6 +414,22 @@ const Courses: React.FC = () => {
           <p className="text-destructive text-sm font-medium">{(deleteError as Error)?.message || 'Kursni o‘chirishda xatolik!'}</p>
         </div>
       )}
+      <ConfirmDialog
+        open={deleteDialog.open}
+        title="Kursni o'chirishni tasdiqlang"
+        description="Ushbu kursni o'chirishni xohlaysizmi? Ushbu amalni bekor qilib bo'lmaydi."
+        confirmText="Ha, o'chirish"
+        cancelText="Bekor qilish"
+        loading={isDeleting}
+        onCancel={() => setDeleteDialog({ open: false, courseId: null })}
+        onConfirm={() => {
+          if (deleteDialog.courseId) {
+            deleteCourse(deleteDialog.courseId, {
+              onSettled: () => setDeleteDialog({ open: false, courseId: null })
+            });
+          }
+        }}
+      />
     </div>
   );
 };

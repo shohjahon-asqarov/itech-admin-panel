@@ -13,12 +13,14 @@ import { Lead } from '@/types';
 import { LeadService } from '@/services';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDate } from '@/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const Leads: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; leadId: string | null }>({ open: false, leadId: null });
   const queryClient = useQueryClient();
 
   // Fetch leads (GET)
@@ -90,9 +92,7 @@ const Leads: React.FC = () => {
   };
 
   const handleDelete = (leadId: string) => {
-    if (confirm('Lidni o\'chirishni xohlaysizmi?')) {
-      deleteLead(leadId);
-    }
+    setDeleteDialog({ open: true, leadId });
   };
 
   const stats = {
@@ -415,6 +415,22 @@ const Leads: React.FC = () => {
           <p className="text-destructive text-sm font-medium">{(deleteError as Error)?.message || 'Lidni o‘chirishda xatolik!'}</p>
         </div>
       )}
+      <ConfirmDialog
+        open={deleteDialog.open}
+        title="Lidni o'chirishni tasdiqlang"
+        description="Ushbu lidni o'chirishni xohlaysizmi? Ushbu amalni bekor qilib bo'lmaydi."
+        confirmText="Ha, o'chirish"
+        cancelText="Bekor qilish"
+        loading={isDeleting}
+        onCancel={() => setDeleteDialog({ open: false, leadId: null })}
+        onConfirm={() => {
+          if (deleteDialog.leadId) {
+            deleteLead(deleteDialog.leadId, {
+              onSettled: () => setDeleteDialog({ open: false, leadId: null })
+            });
+          }
+        }}
+      />
     </div>
   );
 };

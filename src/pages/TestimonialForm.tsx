@@ -104,7 +104,7 @@ const TestimonialForm: React.FC = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       if (imageUploading) {
-        toast.error('Rasm yuklanmoqda. Birozdan so\'ng yuboring.');
+        // toast.error('Rasm yuklanmoqda. Birozdan so\'ng yuboring.');
         return;
       }
       const submitData = {
@@ -115,14 +115,12 @@ const TestimonialForm: React.FC = () => {
       };
       if (isEditing) {
         await TestimonialService.update(id, submitData);
-        toast.success('Fikr muvaffaqiyatli yangilandi!');
       } else {
         await TestimonialService.create(submitData);
-        toast.success('Fikr muvaffaqiyatli qo\'shildi!');
       }
       navigate('/testimonials');
     } catch (error) {
-      toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
   };
 

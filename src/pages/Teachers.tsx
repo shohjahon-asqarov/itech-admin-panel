@@ -13,12 +13,14 @@ import { Teacher } from '@/types';
 import { TeacherService } from '@/services';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDate } from '@/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const Teachers: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [specializationFilter, setSpecializationFilter] = useState<string>('all');
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacherId: string | null }>({ open: false, teacherId: null });
   const queryClient = useQueryClient();
 
   // Fetch teachers (GET)
@@ -67,9 +69,7 @@ const Teachers: React.FC = () => {
   };
 
   const handleDelete = (teacherId: string) => {
-    if (confirm('O\'qituvchini o\'chirishni xohlaysizmi?')) {
-      deleteTeacher(teacherId);
-    }
+    setDeleteDialog({ open: true, teacherId });
   };
 
   if (isLoading) {
@@ -376,6 +376,22 @@ const Teachers: React.FC = () => {
           <p className="text-destructive text-sm font-medium">{(deleteError as Error)?.message || `O'qituvchini o‘chirishda xatolik!`}</p>
         </div>
       )}
+      <ConfirmDialog
+        open={deleteDialog.open}
+        title="O'qituvchini o'chirishni tasdiqlang"
+        description="Ushbu o'qituvchini o'chirishni xohlaysizmi? Ushbu amalni bekor qilib bo'lmaydi."
+        confirmText="Ha, o'chirish"
+        cancelText="Bekor qilish"
+        loading={isDeleting}
+        onCancel={() => setDeleteDialog({ open: false, teacherId: null })}
+        onConfirm={() => {
+          if (deleteDialog.teacherId) {
+            deleteTeacher(deleteDialog.teacherId, {
+              onSettled: () => setDeleteDialog({ open: false, teacherId: null })
+            });
+          }
+        }}
+      />
     </div>
   );
 };

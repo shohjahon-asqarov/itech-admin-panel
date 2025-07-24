@@ -114,14 +114,12 @@ const TeacherForm: React.FC = () => {
       };
       if (isEditing) {
         await TeacherService.update(id, submitData);
-        toast.success('O\'qituvchi muvaffaqiyatli yangilandi!');
       } else {
         await TeacherService.create(submitData);
-        toast.success('O\'qituvchi muvaffaqiyatli qo\'shildi!');
       }
       navigate('/teachers');
     } catch (error) {
-      toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
   };
 

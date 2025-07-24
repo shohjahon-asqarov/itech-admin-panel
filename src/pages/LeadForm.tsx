@@ -88,14 +88,12 @@ const LeadForm: React.FC = () => {
       if (isEditing) {
         submitData.status = data.status?.toUpperCase();
         await LeadService.update(id, submitData);
-        toast.success('Lead muvaffaqiyatli yangilandi!');
       } else {
         await LeadService.create(submitData);
-        toast.success('Lead muvaffaqiyatli qo\'shildi!');
       }
       navigate('/leads');
     } catch (error) {
-      toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
   };
 

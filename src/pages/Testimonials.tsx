@@ -13,12 +13,14 @@ import { Testimonial } from '@/types';
 import { TestimonialService } from '@/services';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDate } from '@/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const Testimonials: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
   const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; testimonialId: string | null }>({ open: false, testimonialId: null });
   const queryClient = useQueryClient();
 
   // Fetch testimonials (GET)
@@ -67,9 +69,7 @@ const Testimonials: React.FC = () => {
   };
 
   const handleDelete = (testimonialId: string) => {
-    if (confirm('Fikrni o\'chirishni xohlaysizmi?')) {
-      deleteTestimonial(testimonialId);
-    }
+    setDeleteDialog({ open: true, testimonialId });
   };
 
   const renderStars = (rating: number) => {
@@ -352,6 +352,22 @@ const Testimonials: React.FC = () => {
           <p className="text-destructive text-sm font-medium">{(deleteError as Error)?.message || 'Fikrni o‘chirishda xatolik!'}</p>
         </div>
       )}
+      <ConfirmDialog
+        open={deleteDialog.open}
+        title="Fikrni o'chirishni tasdiqlang"
+        description="Ushbu fikrni o'chirishni xohlaysizmi? Ushbu amalni bekor qilib bo'lmaydi."
+        confirmText="Ha, o'chirish"
+        cancelText="Bekor qilish"
+        loading={isDeleting}
+        onCancel={() => setDeleteDialog({ open: false, testimonialId: null })}
+        onConfirm={() => {
+          if (deleteDialog.testimonialId) {
+            deleteTestimonial(deleteDialog.testimonialId, {
+              onSettled: () => setDeleteDialog({ open: false, testimonialId: null })
+            });
+          }
+        }}
+      />
     </div>
   );
 };

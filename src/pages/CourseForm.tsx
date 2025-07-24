@@ -105,15 +105,13 @@ const CourseForm: React.FC = () => {
       };
       if (isEditing) {
         await CourseService.update(id, submitData);
-        toast.success('Kurs muvaffaqiyatli yangilandi!');
       } else {
         await CourseService.create(submitData);
-        toast.success('Kurs muvaffaqiyatli qo\'shildi!');
       }
       queryClient.invalidateQueries({ queryKey: ['courses'] }); // Boshqa pagelardagi kabi
       navigate('/courses');
     } catch (error) {
-      toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
   };
 
