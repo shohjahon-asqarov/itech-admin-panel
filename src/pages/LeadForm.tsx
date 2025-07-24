@@ -1,11 +1,11 @@
 // React va asosiy kutubxonalar
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 // Ikonalar
-import { ArrowLeft, Save, User, BookOpen } from 'lucide-react';
+import { ArrowLeft, Save, User, BookOpen, MessageSquare } from 'lucide-react';
 
 // Loyiha UI komponentlari
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';

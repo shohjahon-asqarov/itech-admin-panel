@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, User } from 'lucide-react';
+import { ArrowLeft, Save, User, Upload, BookOpen } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,6 +13,8 @@ import { showToast } from '../components/ui/toast';
 import { Teacher } from '../types';
 import { TeacherService } from '../services/teacherService';
 import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../services';
+import { Controller } from 'react-hook-form';
 
 type FormValues = {
   name: string;
