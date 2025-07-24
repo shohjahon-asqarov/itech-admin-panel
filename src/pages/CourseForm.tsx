@@ -1,19 +1,18 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, BookOpen, DollarSign, Clock, Users, Award } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'react-toastify';
-import { Course } from '@/types';
-import { CourseService } from '@/services';
-import { useFetch } from '@/hooks';
-import { apiService } from '@/services/api';
+import { ArrowLeft, Save, BookOpen } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Switch } from '../components/ui/switch';
+import { showToast } from '../components/ui/toast';
+import { Course } from '../types';
+import { CourseService } from '../services';
+import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 
 const levels = [
@@ -59,59 +58,49 @@ const CourseForm: React.FC = () => {
     },
   });
 
-  // Fetch course data if editing
-  const { execute: fetchCourse } = useFetch<Course>(
-    async () => {
-      if (!id) throw new Error('ID required');
-      return await CourseService.getById(id);
-    },
-    {
-      onSuccess: (data) => {
-        reset({
-          title: data.title,
-          description: data.description || '',
-          price: data.price || 0,
-          duration: data.duration || '',
-          level: data.level,
-          image: data.image || '',
-          isActive: data.isActive,
-        });
-        if (data.image) setValue('image', data.image);
-      },
-      onError: () => {
-        toast.error('Kurs ma\'lumotlari yuklanmadi');
-        navigate('/courses');
-      },
-      autoExecute: true
-    }
-  );
+  const { data: course, isLoading: isCourseLoading } = useQuery({
+    queryKey: ['course', id],
+    queryFn: () => CourseService.getById(id as string),
+    enabled: isEditing && !!id,
+  });
 
   useEffect(() => {
-    if (isEditing) {
-      fetchCourse();
+    if (course) {
+      reset({
+        title: course.title,
+        description: course.description || '',
+        price: course.price || 0,
+        duration: course.duration || '',
+        level: course.level,
+        image: course.image || '',
+        isActive: course.isActive,
+      });
+      if (course.image) setValue('image', course.image);
     }
-  }, [isEditing]);
+  }, [course, reset, setValue]);
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const submitData = {
+      const submitData: Record<string, unknown> = {
         title: data.title,
-        price: Number(data.price), // always send as number
+        price: Number(data.price),
         description: data.description,
         duration: data.duration,
         level: data.level,
         image: data.image,
         isActive: data.isActive
       };
-      if (isEditing) {
-        await CourseService.update(id, submitData);
+      if (isEditing && id) {
+        await CourseService.update(id as string, submitData);
+        showToast.success("Kurs yangilandi!");
       } else {
         await CourseService.create(submitData);
+        showToast.success("Yangi kurs qo'shildi!");
       }
-      queryClient.invalidateQueries({ queryKey: ['courses'] }); // Boshqa pagelardagi kabi
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
       navigate('/courses');
     } catch (error) {
-      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      showToast.error("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
     }
   };
 
@@ -129,11 +118,15 @@ const CourseForm: React.FC = () => {
       if (url) {
         setValue('image', url, { shouldValidate: true, shouldDirty: true });
       }
-    } catch {
-      toast.error('Rasm yuklashda xatolik yuz berdi.');
+    } catch (e) {
+      showToast.error('Rasm yuklashda xatolik yuz berdi.');
     }
     setImageUploading(false);
   };
+
+  if (isCourseLoading) {
+    return <div className="flex items-center justify-center min-h-[300px]"><span>Kurs ma'lumotlari yuklanmoqda...</span></div>;
+  }
 
   return (
     <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">

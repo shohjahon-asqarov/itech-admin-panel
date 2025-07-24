@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Plus, Mail, Phone, MapPin, Star, Users, Eye, Edit, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toast } from 'react-toastify';
-import { Teacher } from '@/types';
-import { TeacherService } from '@/services';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { showToast } from '../components/ui/toast';
+import { Teacher } from '../types';
+import { TeacherService } from '../services/teacherService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatDate } from '@/utils';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatDate } from '../utils';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 const Teachers: React.FC = () => {
   const navigate = useNavigate();
@@ -45,11 +45,11 @@ const Teachers: React.FC = () => {
   } = useMutation({
     mutationFn: (id: string) => TeacherService.delete(id),
     onSuccess: () => {
-      toast.success("O'qituvchi muvaffaqiyatli o'chirildi!");
+      showToast("O'qituvchi muvaffaqiyatli o'chirildi!");
       queryClient.invalidateQueries({ queryKey: ['teachers'] });
     },
     onError: (err: any) => {
-      toast.error(err?.message || "O'qituvchini o‘chirishda xatolik!");
+      showToast("O'qituvchini o‘chirishda xatolik!");
     },
   });
 

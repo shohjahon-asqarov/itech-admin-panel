@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Filter, Plus, Users, Clock, DollarSign, Star, BookOpen, Eye, Edit, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toast } from 'react-toastify';
-import { Course } from '@/types';
-import { CourseService } from '@/services';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { showToast } from '../components/ui/toast';
+import { Course } from '../types';
+import { CourseService } from '../services';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatDate, formatCurrency } from '@/utils';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatDate, formatCurrency } from '../utils';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const Courses: React.FC = () => {
     isError,
     error,
     refetch,
-  } = useQuery({
+  } = useQuery<Course[], Error>({
     queryKey: ['courses'],
     queryFn: async () => await CourseService.getAll(),
   });
@@ -53,16 +53,16 @@ const Courses: React.FC = () => {
   } = useMutation({
     mutationFn: (id: string) => CourseService.delete(id),
     onSuccess: () => {
-      toast.success("Kurs muvaffaqiyatli o'chirildi!");
+      showToast.success("Kurs muvaffaqiyatli o'chirildi!");
       queryClient.invalidateQueries({ queryKey: ['courses'] }); // Boshqa pagelardagi kabi
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'Kursni o‘chirishda xatolik!');
+      showToast.error(err?.message || 'Kursni o‘chirishda xatolik!');
     },
   });
 
 
-  const filteredCourses = courses.filter((course: Course) => {
+  const filteredCourses = (courses as Course[]).filter((course: Course) => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || course.category === categoryFilter;
@@ -70,13 +70,13 @@ const Courses: React.FC = () => {
     return matchesSearch && matchesCategory && matchesLevel;
   });
 
-  const categories = Array.from(new Set(courses.map(c => c.category).filter(Boolean)));
-  const levels = Array.from(new Set(courses.map(c => c.level).filter(Boolean)));
+  const categories = Array.from(new Set((courses as Course[]).map((c: Course) => c.category).filter(Boolean)));
+  const levels = Array.from(new Set((courses as Course[]).map((c: Course) => c.level).filter(Boolean)));
 
   const stats = {
     total: courses.length,
-    active: courses.filter(c => c.isActive).length,
-    inactive: courses.filter(c => !c.isActive).length,
+    active: (courses as Course[]).filter((c: Course) => c.isActive).length,
+    inactive: (courses as Course[]).filter((c: Course) => !c.isActive).length,
   };
 
   const handleDelete = (courseId: string) => {
@@ -198,7 +198,7 @@ const Courses: React.FC = () => {
                 <Input
                   placeholder="Kurs nomi yoki tavsif bo'yicha qidirish..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                   className="pl-10 rounded-xl border-gray-200"
                 />
               </div>
@@ -222,7 +222,7 @@ const Courses: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Barcha darajalar</SelectItem>
-                  {levels.map(level => (
+                  {levels.map((level: string) => (
                     <SelectItem key={level} value={level}>{getLevelText(level)}</SelectItem>
                   ))}
                 </SelectContent>
@@ -234,7 +234,7 @@ const Courses: React.FC = () => {
 
       {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-        {filteredCourses.map((course) => (
+        {filteredCourses.map((course: Course) => (
           <Card
             key={course.id}
             className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-3xl p-0"

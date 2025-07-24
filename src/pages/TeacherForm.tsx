@@ -1,19 +1,18 @@
 import React, { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, User, Mail, Phone, MapPin, BookOpen, Award } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'react-toastify';
-import { Teacher } from '@/types';
-import { TeacherService } from '@/services/teacherService';
-import { useFetch } from '@/hooks';
-import { apiService } from '@/services';
+import { ArrowLeft, Save, User } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../components/ui/select';
+import { Switch } from '../components/ui/switch';
+import { showToast } from '../components/ui/toast';
+import { Teacher } from '../types';
+import { TeacherService } from '../services/teacherService';
+import { useQuery } from '@tanstack/react-query';
 
 type FormValues = {
   name: string;
@@ -59,52 +58,39 @@ const TeacherForm: React.FC = () => {
     }
   });
 
-  // Fetch teacher data if editing
-  const { execute: fetchTeacher, data } = useFetch<Teacher>(
-    async () => {
-      if (!id) throw new Error('ID required');
-      return await TeacherService.getById(id);
-    },
-    {
-      onSuccess: (data) => {
-        reset({
-          name: data.name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          bio: data.bio || '',
-          image: data.image || '',
-          isActive: data.isActive ?? true,
-          title: data.title || '',
-          company: data.company || '',
-          skills: data.skills || '',
-          experience: data.experience || '',
-          language: data.language || 'uz',
-        });
-      },
-      onError: () => {
-        toast.error('O\'qituvchi ma\'lumotlari yuklanmadi');
-        navigate('/teachers');
-      },
-      autoExecute: false
-    }
-  );
+  const { data: teacher, isLoading: isTeacherLoading } = useQuery({
+    queryKey: ['teacher', id],
+    queryFn: () => TeacherService.getById(id as string),
+    enabled: isEditing && !!id,
+  });
 
   useEffect(() => {
-    if (isEditing) {
-      fetchTeacher();
+    if (teacher) {
+      reset({
+        name: teacher.name || '',
+        email: teacher.email || '',
+        phone: teacher.phone || '',
+        bio: teacher.bio || '',
+        image: teacher.image || '',
+        isActive: teacher.isActive ?? true,
+        title: teacher.title || '',
+        company: teacher.company || '',
+        skills: teacher.skills || '',
+        experience: teacher.experience || '',
+        language: teacher.language || 'uz',
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [teacher, reset]);
 
   // onSubmit should only send JSON, never FormData
   const onSubmit = async (data: FormValues) => {
     try {
-      const submitData = {
+      const submitData: Record<string, unknown> = {
         name: data.name,
         email: data.email,
         phone: data.phone,
         bio: data.bio,
-        image: data.image, // always a URL string
+        image: data.image,
         isActive: data.isActive,
         title: data.title,
         company: data.company,
@@ -112,14 +98,16 @@ const TeacherForm: React.FC = () => {
         experience: data.experience,
         language: data.language,
       };
-      if (isEditing) {
-        await TeacherService.update(id, submitData);
+      if (isEditing && id) {
+        await TeacherService.update(id as string, submitData);
+        showToast.success("O'qituvchi yangilandi!");
       } else {
         await TeacherService.create(submitData);
+        showToast.success("Yangi o'qituvchi qo'shildi!");
       }
       navigate('/teachers');
     } catch (error) {
-      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      showToast.error("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
     }
   };
 
@@ -141,11 +129,15 @@ const TeacherForm: React.FC = () => {
       if (url) {
         setValue('image', url, { shouldValidate: true, shouldDirty: true });
       }
-    } catch {
-      toast.error('Rasm yuklashda xatolik yuz berdi.');
+    } catch (e) {
+      showToast.error('Rasm yuklashda xatolik yuz berdi.');
     }
     setImageUploading(false);
   };
+
+  if (isTeacherLoading) {
+    return <div className="flex items-center justify-center min-h-[300px]"><span>O'qituvchi ma'lumotlari yuklanmoqda...</span></div>;
+  }
 
   return (
     <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">

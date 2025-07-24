@@ -1,20 +1,29 @@
-import React, { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+// React va asosiy kutubxonalar
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, User, Mail, Phone, BookOpen, MessageSquare, Upload } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'react-toastify';
-import { Lead } from '@/types';
-import { LeadService } from '@/services';
-import { useFetch } from '@/hooks';
-import { CourseService } from '@/services/courseService';
-import { apiService } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
 
+// Ikonalar
+import { ArrowLeft, Save, User, BookOpen } from 'lucide-react';
+
+// Loyiha UI komponentlari
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+
+// Toast
+import { showToast } from '../components/ui/toast';
+
+// Loyiha servis va types
+import { Lead } from '../types';
+import { LeadService } from '../services';
+import { CourseService } from '../services/courseService';
+
+// Form qiymatlari tipi
 type FormValues = {
   name: string;
   email: string;
@@ -29,19 +38,21 @@ const LeadForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditing = Boolean(id);
 
-  const [courses, setCourses] = React.useState<{ id: string; title: string }[]>([]);
-  React.useEffect(() => {
+  // Kurslar ro‘yxati
+  const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
+  useEffect(() => {
     (async () => {
       try {
         const res = await CourseService.getAll();
-        setCourses(res.map((c: any) => ({ id: c.id, title: c.title })));
+        setCourses((res as { id: string; title: string }[]).map((c: { id: string; title: string }) => ({ id: c.id, title: c.title })));
       } catch {
-        toast.error('Kurslar yuklanmadi');
+        showToast.error('Kurslar yuklanmadi');
       }
     })();
   }, []);
 
-  const { register, handleSubmit, setValue, reset, control, getValues, formState: { errors, isSubmitting, isValid } } = useForm<FormValues>({
+  // Form hook
+  const { register, handleSubmit, setValue, reset, control, formState: { errors, isSubmitting, isValid } } = useForm<FormValues>({
     mode: 'onChange',
     defaultValues: {
       name: '',
@@ -53,56 +64,60 @@ const LeadForm: React.FC = () => {
     }
   });
 
-  // Fetch lead data if editing
-  useEffect(() => {
-    if (isEditing) {
-      (async () => {
-        try {
-          const data = await LeadService.getById(id);
-          reset({
-            name: data.name,
-            email: data.email,
-            phone: data.phone || '',
-            courseId: data.course?.id || '',
-            message: data.message || '',
-            status: data.status,
-          });
-        } catch {
-          toast.error("Lead ma'lumotlari yuklanmadi");
-          navigate('/leads');
-        }
-      })();
-    }
-  }, [isEditing, id, reset, navigate]);
+  const { data: lead, isLoading: isLeadLoading } = useQuery<Lead>({
+    queryKey: ['lead', id],
+    queryFn: () => LeadService.getById(id as string),
+    enabled: isEditing && !!id,
+  });
 
-  // onSubmit should only send JSON, never FormData
+  useEffect(() => {
+    if (lead) {
+      reset({
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone || '',
+        courseId: lead.course?.id || '',
+        message: lead.message || '',
+        status: lead.status,
+      });
+    }
+  }, [lead, reset]);
+
+  // Submit
   const onSubmit = async (data: FormValues) => {
     try {
-      const submitData: any = {
+      const submitData: Record<string, unknown> = {
         name: data.name,
         email: data.email,
         phone: data.phone,
         courseId: data.courseId,
         message: data.message,
       };
-      if (isEditing) {
+      if (isEditing && id) {
         submitData.status = data.status?.toUpperCase();
-        await LeadService.update(id, submitData);
+        await LeadService.update(id as string, submitData);
+        showToast.success("Lead yangilandi!");
       } else {
         await LeadService.create(submitData);
+        showToast.success("Yangi lead qo'shildi!");
       }
       navigate('/leads');
     } catch (error) {
-      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      showToast.error("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
     }
   };
 
+  // Status variantlari
   const statuses = [
     { value: 'NEW', label: 'Yangi' },
     { value: 'CONTACTED', label: 'Bog\'lanish' },
     { value: 'ENROLLED', label: 'Ro\'yxatdan o\'tgan' },
     { value: 'REJECTED', label: 'Bekor qilindi' }
   ];
+
+  if (isLeadLoading) {
+    return <div className="flex items-center justify-center min-h-[300px]"><span>Lead ma'lumotlari yuklanmoqda...</span></div>;
+  }
 
   return (
     <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">

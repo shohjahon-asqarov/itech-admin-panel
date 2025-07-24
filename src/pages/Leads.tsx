@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Plus, Phone, Mail, Eye, Edit, Calendar, MapPin, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toast } from 'react-toastify';
-import { Lead } from '@/types';
-import { LeadService } from '@/services';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { showToast } from '../components/ui/toast';
+import { Lead } from '../types';
+import { LeadService } from '../services';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatDate } from '@/utils';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatDate } from '../utils';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 const Leads: React.FC = () => {
   const navigate = useNavigate();
@@ -45,11 +45,11 @@ const Leads: React.FC = () => {
   } = useMutation({
     mutationFn: (id: string) => LeadService.delete(id),
     onSuccess: () => {
-      toast.success("Lid muvaffaqiyatli o'chirildi!");
+      showToast.success("Lid muvaffaqiyatli o'chirildi!");
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'Lidni o‘chirishda xatolik!');
+      showToast.error(err?.message || 'Lidni o‘chirishda xatolik!');
     },
   });
 

@@ -1,8 +1,15 @@
+// React va asosiy kutubxonalar
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Save, Bell, Shield, User, Globe, Database, Mail, Phone } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
+// Ikonalar
+import { Save, Bell, Shield, User, Database, Mail } from 'lucide-react';
+
+// Loyiha UI komponentlari
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+
+// Loyiha servis va context
 import { useAuth } from '../context/AuthContext';
 
 const Settings: React.FC = () => {
@@ -480,8 +487,8 @@ const Settings: React.FC = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === tab.id
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
                       }`}
                   >
                     <Icon size={20} />

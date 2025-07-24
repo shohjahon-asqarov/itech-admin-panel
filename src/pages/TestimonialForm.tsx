@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Upload, MessageSquare, Star, User } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'react-toastify';
-import { Testimonial } from '@/types';
-import { TestimonialService } from '@/services';
-import { useFetch } from '@/hooks';
-import { apiService } from '@/services';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { showToast } from '../components/ui/toast';
+import { Testimonial } from '../types';
+import { TestimonialService } from '../services';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../services';
 
 const ratings = [
   { value: '5', label: '5 yulduz - Ajoyib' },
@@ -50,35 +50,22 @@ const TestimonialForm: React.FC = () => {
     }
   });
 
-  // Replace useFetch for edit logic to match TeacherForm
-  const { execute: fetchTestimonial } = useFetch<Testimonial>(
-    async () => {
-      if (!id) throw new Error('ID required');
-      return await TestimonialService.getById(id);
-    },
-    {
-      onSuccess: (data: Testimonial) => {
-        reset({
-          name: data.name || '',
-          content: data.content || '',
-          rating: data.rating ? data.rating.toString() : '5',
-          image: data.image ? data.image : '',
-        });
-      },
-      onError: () => {
-        toast.error('Fikr ma\'lumotlari yuklanmadi');
-        navigate('/testimonials');
-      },
-      autoExecute: false
-    }
-  );
+  const { data: testimonial, isLoading: isTestimonialLoading } = useQuery({
+    queryKey: ['testimonial', id],
+    queryFn: () => TestimonialService.getById(id as string),
+    enabled: isEditing && !!id,
+  });
 
   useEffect(() => {
-    if (isEditing) {
-      fetchTestimonial();
+    if (testimonial) {
+      reset({
+        name: testimonial.name || '',
+        content: testimonial.content || '',
+        rating: testimonial.rating ? testimonial.rating.toString() : '5',
+        image: testimonial.image ? testimonial.image : '',
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [testimonial, reset]);
 
   // Image upload handler
   const handleImageUpload = async (file: File) => {
@@ -94,8 +81,8 @@ const TestimonialForm: React.FC = () => {
       if (url) {
         setValue('image', url, { shouldValidate: true, shouldDirty: true });
       }
-    } catch {
-      toast.error('Rasm yuklashda xatolik yuz berdi.');
+    } catch (e) {
+      showToast.error('Rasm yuklashda xatolik yuz berdi.');
     }
     setImageUploading(false);
   };
@@ -104,25 +91,31 @@ const TestimonialForm: React.FC = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       if (imageUploading) {
-        // toast.error('Rasm yuklanmoqda. Birozdan so\'ng yuboring.');
+        showToast.error("Rasm yuklanmoqda. Birozdan so'ng yuboring.");
         return;
       }
-      const submitData = {
+      const submitData: Record<string, unknown> = {
         name: data.name,
         content: data.content,
         rating: parseInt(data.rating, 10),
-        image: data.image, // always a URL string
+        image: data.image,
       };
-      if (isEditing) {
-        await TestimonialService.update(id, submitData);
+      if (isEditing && id) {
+        await TestimonialService.update(id as string, submitData);
+        showToast.success("Fikr yangilandi!");
       } else {
         await TestimonialService.create(submitData);
+        showToast.success("Yangi fikr qo'shildi!");
       }
       navigate('/testimonials');
     } catch (error) {
-      // toast.error('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      showToast.error("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
     }
   };
+
+  if (isTestimonialLoading) {
+    return <div className="flex items-center justify-center min-h-[300px]"><span>Fikr ma'lumotlari yuklanmoqda...</span></div>;
+  }
 
   return (
     <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">

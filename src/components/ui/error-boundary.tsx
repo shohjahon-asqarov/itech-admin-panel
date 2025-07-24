@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        console.error('ErrorBoundary caught an error:', error, errorInfo);
+        // barcha console.error larni olib tashla
         this.setState({ error, errorInfo });
     }
 
@@ -97,7 +97,6 @@ export class ErrorBoundary extends Component<Props, State> {
 // Hook for functional components
 export const useErrorHandler = () => {
     const handleError = (error: Error, errorInfo?: any) => {
-        console.error('Error caught by useErrorHandler:', error, errorInfo);
         // You can send error to your error reporting service here
     };
 

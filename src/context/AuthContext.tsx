@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { AuthService } from '../services/authService';
-import { toast } from 'react-toastify';
+import { showToast } from '../components/ui/toast';
 
 interface AuthContextType {
   user: User | null;
@@ -39,7 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('admin_user');
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
       setUser(null);
       AuthService.removeToken();
       localStorage.removeItem('admin_user');
@@ -58,7 +57,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem('admin_user');
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
       } finally {
         setLoading(false);
       }
@@ -77,11 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(response.user);
       localStorage.setItem('admin_user', JSON.stringify(response.user));
 
-      toast.success('Login successful!');
+      showToast.success('Login successful!');
       return true;
     } catch (error) {
-      console.error('Login failed:', error);
-      toast.error('Login failed. Please check your credentials.');
+      showToast.error('Login failed. Please check your credentials.');
       return false;
     } finally {
       setLoading(false);
@@ -92,13 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await AuthService.logout();
     } catch (error) {
-      console.error('Logout request failed:', error);
     } finally {
       // Always clear local data
       setUser(null);
       AuthService.removeToken();
       localStorage.removeItem('admin_user');
-      toast.success('Logged out successfully');
+      showToast.success('Logged out successfully');
     }
   };
 
